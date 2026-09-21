@@ -8,24 +8,31 @@ import { PALETTE } from '@/lib/palette'
 import type { PaletteKey } from '@/lib/palette'
 import { Icon } from './Icon'
 
-export interface SelectOption {
-  value: string
+export interface SelectOption<T extends string = string> {
+  value: T
   label: string
   /** Optional category color dot. */
   color?: PaletteKey
 }
 
-interface SelectProps {
-  options: SelectOption[]
-  value: string | null
-  onChange: (value: string) => void
+interface SelectProps<T extends string> {
+  options: SelectOption<T>[]
+  value: T | null
+  onChange: (value: T) => void
   ariaLabel: string
   placeholder?: string
   className?: string
 }
 
 // Custom listbox (button + popover) so the native <select> chrome never shows.
-export function Select({ options, value, onChange, ariaLabel, placeholder, className }: SelectProps) {
+export function Select<T extends string = string>({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+  placeholder,
+  className,
+}: SelectProps<T>) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -86,6 +93,7 @@ export function Select({ options, value, onChange, ariaLabel, placeholder, class
         break
       case 'Escape':
         event.preventDefault()
+        event.stopPropagation()
         setOpen(false)
         break
       case 'Tab':

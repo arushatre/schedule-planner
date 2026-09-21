@@ -1,7 +1,7 @@
 import { getDate, getDay, getDaysInMonth } from 'date-fns'
 
 import type { Occurrence, Task } from '@/types/model'
-import { daysBetween, fromDateStr } from './dates'
+import { daysBetween, fromDateStr, shiftDate } from './dates'
 
 export function isRecurring(task: Task): boolean {
   return task.dueDate !== null && task.recurrence.kind !== 'none'
@@ -80,4 +80,21 @@ export function compareByDue(a: Occurrence, b: Occurrence): number {
   const timeB = b.task.dueTime ?? ''
   if (timeA !== timeB) return timeA < timeB ? -1 : 1
   return a.task.createdAt - b.task.createdAt
+}
+
+/**
+ * Everything the list and dashboard show: one-off tasks of any date (so old
+ * overdue items never disappear), recurring tasks expanded over a window
+ * around today, and tasks without a date.
+ */
+export function listOccurrences(tasks: Task[], today: string): Occurrence[] {
+  const oneOffs = tasks
+    .filter((task) => task.dueDate && !isRecurring(task))
+    .map((task) => occurrence(task, task.dueDate, task.dueDate))
+  const recurring = expandOccurrences(
+    tasks.filter(isRecurring),
+    shiftDate(today, -7),
+    shiftDate(today, 60),
+  )
+  return [...oneOffs, ...recurring, ...undatedOccurrences(tasks)]
 }

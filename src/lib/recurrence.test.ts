@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { makeTask } from './tasks'
-import { expandOccurrences, isOverdue, undatedOccurrences } from './recurrence'
+import { expandOccurrences, isOverdue, listOccurrences, undatedOccurrences } from './recurrence'
 import type { Task } from '@/types/model'
 
 const base = { title: 'T', categoryId: 'c1' }
@@ -123,5 +123,23 @@ describe('helpers', () => {
     const task = makeTask(base)
     expect(undatedOccurrences([task])).toHaveLength(1)
     expect(expandOccurrences([task], '2026-01-01', '2026-12-31')).toHaveLength(0)
+  })
+})
+
+describe('listOccurrences', () => {
+  it('keeps old one-off tasks, windows recurring ones, and includes undated', () => {
+    const old = makeTask({ ...base, dueDate: '2025-01-01' })
+    const habit = makeTask({
+      ...base,
+      dueDate: '2026-01-01',
+      recurrence: { kind: 'daily', weekdays: [], until: null },
+    })
+    const undated = makeTask(base)
+    const occs = listOccurrences([old, habit, undated], '2026-09-21')
+    expect(occs.filter((o) => o.task.id === old.id)).toHaveLength(1)
+    expect(occs.filter((o) => o.task.id === undated.id)).toHaveLength(1)
+    const habitDates = occs.filter((o) => o.task.id === habit.id).map((o) => o.date)
+    expect(habitDates[0]).toBe('2026-09-14')
+    expect(habitDates.at(-1)).toBe('2026-11-20')
   })
 })
