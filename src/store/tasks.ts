@@ -5,7 +5,8 @@ import * as repo from '@/db/repo'
 import { isRecurring } from '@/lib/recurrence'
 import { makeTask } from '@/lib/tasks'
 import type { PaletteKey } from '@/lib/palette'
-import type { Category, Occurrence, Task } from '@/types/model'
+import type { BackupData } from '@/lib/backup'
+import type { Category, ClassBlock, Occurrence, Task } from '@/types/model'
 
 
 export type TaskDraft = Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'completedAt' | 'completedDates' | 'exceptions'>
@@ -18,6 +19,7 @@ interface TasksState {
   error: string | null
   tasks: Task[]
   categories: Category[]
+  classBlocks: ClassBlock[]
 
   init: () => Promise<void>
   createTask: (draft: TaskDraft) => Promise<Task>
@@ -28,7 +30,9 @@ interface TasksState {
   moveOccurrence: (occ: Occurrence, toDate: string) => Promise<Undo>
   createCategory: (name: string, colorKey: PaletteKey) => Promise<Category>
   saveCategory: (category: Category) => Promise<void>
-  importAll: (tasks: Task[], categories: Category[]) => Promise<void>
+  saveClassBlock: (block: ClassBlock) => Promise<void>
+  deleteClassBlock: (id: string) => Promise<Undo>
+  importAll: (data: BackupData) => Promise<void>
 }
 
 export const useTasksStore = create<TasksState>()((set, get) => {
@@ -61,12 +65,13 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     error: null,
     tasks: [],
     categories: [],
+    classBlocks: [],
 
     init: async () => {
       try {
         await repo.ensureSeed()
-        const { tasks, categories } = await repo.loadAll()
-        set({ tasks, categories, ready: true, error: null })
+        const { tasks, categories, classBlocks } = await repo.loadAll()
+        set({ tasks, categories, classBlocks, ready: true, error: null })
       } catch (error) {
         set({
           ready: true,
@@ -163,9 +168,33 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       }))
     },
 
-    importAll: async (tasks, categories) => {
-      await repo.replaceAll(tasks, categories)
-      set({ tasks, categories: [...categories].sort((a, b) => a.order - b.order) })
+    saveClassBlock: async (block) => {
+      await repo.putClassBlock(block)
+      set((state) => ({
+        classBlocks: state.classBlocks.some((current) => current.id === block.id)
+          ? state.classBlocks.map((current) => (current.id === block.id ? block : current))
+          : [...state.classBlocks, block],
+      }))
+    },
+
+    deleteClassBlock: async (id) => {
+      const removed = get().classBlocks.find((block) => block.id === id)
+      await repo.deleteClassBlock(id)
+      set((state) => ({ classBlocks: state.classBlocks.filter((block) => block.id !== id) }))
+      return async () => {
+        if (!removed) return
+        await repo.putClassBlock(removed)
+        set((state) => ({ classBlocks: [...state.classBlocks, removed] }))
+      }
+    },
+
+    importAll: async (data) => {
+      await repo.replaceAll(data)
+      set({
+        tasks: data.tasks,
+        categories: [...data.categories].sort((a, b) => a.order - b.order),
+        classBlocks: data.classBlocks,
+      })
     },
   }
 })

@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid'
 
-import type { Category, Task } from '@/types/model'
+import type { Category, ClassBlock, Task } from '@/types/model'
 import { db } from './schema'
 
 const SEED_KEY = 'seeded'
@@ -29,12 +29,17 @@ export async function ensureSeed(): Promise<void> {
   })
 }
 
-export async function loadAll(): Promise<{ tasks: Task[]; categories: Category[] }> {
-  const [tasks, categories] = await Promise.all([
+export async function loadAll(): Promise<{
+  tasks: Task[]
+  categories: Category[]
+  classBlocks: ClassBlock[]
+}> {
+  const [tasks, categories, classBlocks] = await Promise.all([
     db.tasks.toArray(),
     db.categories.orderBy('order').toArray(),
+    db.classBlocks.toArray(),
   ])
-  return { tasks, categories }
+  return { tasks, categories, classBlocks }
 }
 
 export async function putTasks(tasks: Task[]): Promise<void> {
@@ -49,13 +54,27 @@ export async function putCategory(category: Category): Promise<void> {
   await db.categories.put(category)
 }
 
+export async function putClassBlock(block: ClassBlock): Promise<void> {
+  await db.classBlocks.put(block)
+}
+
+export async function deleteClassBlock(id: string): Promise<void> {
+  await db.classBlocks.delete(id)
+}
+
 /** Replaces everything (used by import). Marks seeded so defaults don't return. */
-export async function replaceAll(tasks: Task[], categories: Category[]): Promise<void> {
-  await db.transaction('rw', db.tasks, db.categories, db.meta, async () => {
+export async function replaceAll(data: {
+  tasks: Task[]
+  categories: Category[]
+  classBlocks: ClassBlock[]
+}): Promise<void> {
+  await db.transaction('rw', db.tasks, db.categories, db.classBlocks, db.meta, async () => {
     await db.tasks.clear()
     await db.categories.clear()
-    await db.tasks.bulkAdd(tasks)
-    await db.categories.bulkAdd(categories)
+    await db.classBlocks.clear()
+    await db.tasks.bulkAdd(data.tasks)
+    await db.categories.bulkAdd(data.categories)
+    await db.classBlocks.bulkAdd(data.classBlocks)
     await db.meta.put({ key: SEED_KEY, value: '1' })
   })
 }

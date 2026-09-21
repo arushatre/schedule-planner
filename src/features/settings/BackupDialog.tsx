@@ -18,6 +18,7 @@ export function BackupDialog() {
   const pushToast = useUiStore((state) => state.pushToast)
   const tasks = useTasksStore((state) => state.tasks)
   const categories = useTasksStore((state) => state.categories)
+  const classBlocks = useTasksStore((state) => state.classBlocks)
   const importAll = useTasksStore((state) => state.importAll)
   const { guard } = useTaskActions()
 
@@ -49,7 +50,7 @@ export function BackupDialog() {
   const confirmImport = () => {
     if (!pending) return
     void guard(async () => {
-      await importAll(pending.tasks, pending.categories)
+      await importAll(pending)
       pushToast({ message: `Imported ${pending.tasks.length} tasks` })
       close()
     })
@@ -71,7 +72,7 @@ export function BackupDialog() {
                 downloadFile(
                   `daybook-backup-${stamp}.json`,
                   'application/json',
-                  serializeBackup({ tasks, categories }),
+                  serializeBackup({ tasks, categories, classBlocks }),
                 )
               }
             >
@@ -80,7 +81,7 @@ export function BackupDialog() {
             <Button
               icon={CalendarArrowDown}
               onClick={() =>
-                downloadFile(`daybook-${stamp}.ics`, 'text/calendar', buildIcs(tasks, categories))
+                downloadFile(`daybook-${stamp}.ics`, 'text/calendar', buildIcs(tasks, categories, new Date(), classBlocks))
               }
             >
               Export calendar (.ics)

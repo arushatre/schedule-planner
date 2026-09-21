@@ -9,15 +9,16 @@ import {
 } from '@dnd-kit/core'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { addDays, addMonths, endOfWeek, format, startOfWeek } from 'date-fns'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Icon } from '@/components/ui/Icon'
-import { Segmented } from '@/components/ui/fields'
+import { Pill, Segmented } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { WEEK_OPTIONS, friendlyDate, fromDateStr, toDateStr, todayStr } from '@/lib/dates'
+import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { CalendarMode } from '@/store/ui'
 import type { Occurrence } from '@/types/model'
@@ -69,6 +70,9 @@ export function CalendarView() {
   const { calendarMode: mode, calendarCursor: cursor, setCalendarMode, setCalendarCursor } = useUiStore()
   const daySheet = useUiStore((state) => state.daySheet)
   const openDaySheet = useUiStore((state) => state.openDaySheet)
+  const showClasses = useUiStore((state) => state.showClasses)
+  const setShowClasses = useUiStore((state) => state.setShowClasses)
+  const hasClasses = useTasksStore((state) => state.classBlocks.length > 0)
   const { move } = useTaskActions()
   const [dragging, setDragging] = useState<Occurrence | null>(null)
   const today = todayStr()
@@ -116,6 +120,12 @@ export function CalendarView() {
         <h2 className="mr-auto font-display text-lg" aria-live="polite">
           {title(cursor, mode)}
         </h2>
+        {hasClasses && (
+          <Pill pressed={showClasses} onClick={() => setShowClasses(!showClasses)}>
+            <Icon icon={GraduationCap} size={14} />
+            Classes
+          </Pill>
+        )}
         <Segmented ariaLabel="Calendar view" options={MODES} value={mode} onChange={setCalendarMode} />
       </div>
 

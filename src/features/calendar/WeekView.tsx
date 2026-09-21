@@ -2,10 +2,12 @@ import { addDays, format, startOfWeek } from 'date-fns'
 import { Plus } from 'lucide-react'
 import { useMemo } from 'react'
 
+import { ClassChip } from '@/components/task/ClassBits'
 import { Icon } from '@/components/ui/Icon'
 import { cx } from '@/lib/cx'
 import { WEEK_OPTIONS, fromDateStr, toDateStr } from '@/lib/dates'
 import { compareByDue, expandOccurrences } from '@/lib/recurrence'
+import { blocksOn } from '@/lib/schedule'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { Occurrence } from '@/types/model'
@@ -15,6 +17,8 @@ export function WeekView({ cursor, today }: { cursor: string; today: string }) {
   const tasks = useTasksStore((state) => state.tasks)
   const openEditor = useUiStore((state) => state.openEditor)
   const openDaySheet = useUiStore((state) => state.openDaySheet)
+  const showClasses = useUiStore((state) => state.showClasses)
+  const classBlocks = useTasksStore((state) => state.classBlocks)
 
   const start = startOfWeek(fromDateStr(cursor), WEEK_OPTIONS)
   const days = Array.from({ length: 7 }, (_, index) => addDays(start, index))
@@ -74,6 +78,8 @@ export function WeekView({ cursor, today }: { cursor: string; today: string }) {
               </button>
             </div>
             <div className="grid content-start gap-1.5">
+              {showClasses &&
+                blocksOn(classBlocks, key).map((block) => <ClassChip key={block.id} block={block} />)}
               {occs.map((occ) => (
                 <DraggableChip key={occ.key} occ={occ} today={today} />
               ))}

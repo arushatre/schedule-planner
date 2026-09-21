@@ -75,6 +75,19 @@ export interface Category {
   createdAt: number
 }
 
+/** A recurring fixed block on the weekly schedule, e.g. "Math, Mon/Wed/Fri 9:00-9:50". */
+export interface ClassBlock {
+  id: string
+  title: string
+  location: string
+  /** 0 (Sunday) to 6 (Saturday). */
+  weekdays: number[]
+  startTime: string
+  endTime: string
+  colorKey: PaletteKey
+  createdAt: number
+}
+
 /** One appearance of a task on a date (recurring tasks yield many). */
 export interface Occurrence {
   key: string

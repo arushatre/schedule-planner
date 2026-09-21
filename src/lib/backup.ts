@@ -1,12 +1,13 @@
 import { PALETTE_KEYS } from '@/lib/palette'
 import type { PaletteKey } from '@/lib/palette'
 import { PRIORITIES, RECURRENCE_KINDS, STATUSES } from '@/types/model'
-import type { Category, Priority, RecurrenceKind, Status, Subtask, Task } from '@/types/model'
+import type { Category, ClassBlock, Priority, RecurrenceKind, Status, Subtask, Task } from '@/types/model'
 import { isDateStr } from './dates'
 
 export interface BackupData {
   tasks: Task[]
   categories: Category[]
+  classBlocks: ClassBlock[]
 }
 
 type UnknownRecord = Record<string, unknown>
@@ -83,9 +84,28 @@ function normalizeCategory(raw: unknown, index: number): Category | null {
   }
 }
 
+function normalizeBlock(raw: unknown): ClassBlock | null {
+  if (!isRecord(raw) || typeof raw.id !== 'string' || typeof raw.title !== 'string') return null
+  const startTime = asTime(raw.startTime)
+  const endTime = asTime(raw.endTime)
+  if (!startTime || !endTime) return null
+  return {
+    id: raw.id,
+    title: raw.title,
+    location: asString(raw.location),
+    weekdays: Array.isArray(raw.weekdays)
+      ? raw.weekdays.filter((day): day is number => Number.isInteger(day) && day >= 0 && day <= 6)
+      : [],
+    startTime,
+    endTime,
+    colorKey: oneOf<PaletteKey>(PALETTE_KEYS, raw.colorKey, 'graphite'),
+    createdAt: asNumber(raw.createdAt, Date.now()),
+  }
+}
+
 export function serializeBackup(data: BackupData, now: Date = new Date()): string {
   return JSON.stringify(
-    { app: 'daybook', version: 1, exportedAt: now.toISOString(), ...data },
+    { app: 'daybook', version: 2, exportedAt: now.toISOString(), ...data },
     null,
     2,
   )
@@ -107,6 +127,10 @@ export function parseBackup(text: string): BackupData {
     categories: raw.categories
       .map(normalizeCategory)
       .filter((category): category is Category => category !== null),
+    // Version 1 backups predate the class schedule.
+    classBlocks: Array.isArray(raw.classBlocks)
+      ? raw.classBlocks.map(normalizeBlock).filter((block): block is ClassBlock => block !== null)
+      : [],
   }
 }
 

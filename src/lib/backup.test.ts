@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { parseBackup, serializeBackup } from './backup'
 import { buildIcs } from './ics'
 import { makeTask } from './tasks'
-import type { Category } from '@/types/model'
+import type { Category, ClassBlock } from '@/types/model'
 
 const categories: Category[] = [
   { id: 'c1', name: 'School', colorKey: 'slate', archived: false, order: 0, createdAt: 1 },
@@ -22,9 +22,20 @@ describe('backup', () => {
       exceptions: { '2026-09-28': '2026-09-29' },
       completedDates: ['2026-09-25'],
     })
-    const restored = parseBackup(serializeBackup({ tasks: [task], categories }))
+    const block: ClassBlock = {
+      id: 'b1',
+      title: 'Math',
+      location: 'Room 12',
+      weekdays: [1, 3, 5],
+      startTime: '09:00',
+      endTime: '09:50',
+      colorKey: 'plum',
+      createdAt: 5,
+    }
+    const restored = parseBackup(serializeBackup({ tasks: [task], categories, classBlocks: [block] }))
     expect(restored.tasks).toEqual([task])
     expect(restored.categories).toEqual(categories)
+    expect(restored.classBlocks).toEqual([block])
   })
 
   it('rejects non-JSON and unrelated JSON with readable errors', () => {
@@ -46,6 +57,20 @@ describe('backup', () => {
     expect(tasks[0]).toMatchObject({ title: 'Ok', priority: 'medium', dueDate: null, tags: ['x'] })
     expect(cats).toHaveLength(1)
     expect(cats[0]?.colorKey).toBe('graphite')
+  })
+
+  it('accepts version 1 backups without a schedule and drops invalid blocks', () => {
+    const legacy = parseBackup(JSON.stringify({ version: 1, tasks: [], categories: [] }))
+    expect(legacy.classBlocks).toEqual([])
+    const withBad = parseBackup(
+      JSON.stringify({
+        tasks: [],
+        categories: [],
+        classBlocks: [{ id: 'x', title: 'No times' }, { id: 'y', title: 'Ok', startTime: '10:00', endTime: '11:00', weekdays: [2, 9] }],
+      }),
+    )
+    expect(withBad.classBlocks).toHaveLength(1)
+    expect(withBad.classBlocks[0]?.weekdays).toEqual([2])
   })
 })
 
@@ -92,6 +117,23 @@ describe('buildIcs', () => {
     expect(ics).toContain('EXDATE;VALUE=DATE:20260923')
     expect(ics).toContain('UID:r-moved-2026-09-23@daybook')
     expect(ics).not.toContain('No date')
+  })
+
+  it('exports class blocks as weekly recurring events starting on a matching weekday', () => {
+    const ics = buildIcs(
+      [],
+      categories,
+      new Date('2026-09-21T12:00:00Z'), // Monday
+      [
+        { id: 'c', title: 'Chem, lab', location: 'Hall B', weekdays: [2, 4], startTime: '13:00', endTime: '14:30', colorKey: 'teal', createdAt: 1 },
+      ],
+    )
+    expect(ics).toContain('UID:class-c@daybook')
+    expect(ics).toContain('DTSTART:20260922T130000') // first Tuesday on/after the Monday
+    expect(ics).toContain('DTEND:20260922T143000')
+    expect(ics).toContain('RRULE:FREQ=WEEKLY;BYDAY=TU,TH')
+    expect(ics).toContain('SUMMARY:Chem\\, lab')
+    expect(ics).toContain('LOCATION:Hall B')
   })
 
   it('folds long lines to 75 characters', () => {

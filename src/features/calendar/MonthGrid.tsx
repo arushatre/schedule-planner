@@ -1,5 +1,5 @@
 import { eachDayOfInterval, endOfMonth, endOfWeek, format, getMonth, startOfMonth, startOfWeek } from 'date-fns'
-import { Plus } from 'lucide-react'
+import { GraduationCap, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import { CategoryDot } from '@/components/task/TaskBits'
@@ -7,6 +7,7 @@ import { Icon } from '@/components/ui/Icon'
 import { cx } from '@/lib/cx'
 import { WEEK_OPTIONS, fromDateStr, toDateStr } from '@/lib/dates'
 import { compareByDue, expandOccurrences } from '@/lib/recurrence'
+import { blocksOn } from '@/lib/schedule'
 import { categoryFor } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
@@ -20,6 +21,8 @@ export function MonthGrid({ cursor, today }: { cursor: string; today: string }) 
   const categories = useTasksStore((state) => state.categories)
   const openDaySheet = useUiStore((state) => state.openDaySheet)
   const openEditor = useUiStore((state) => state.openEditor)
+  const showClasses = useUiStore((state) => state.showClasses)
+  const classBlocks = useTasksStore((state) => state.classBlocks)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
 
   const monthStart = startOfMonth(fromDateStr(cursor))
@@ -61,6 +64,7 @@ export function MonthGrid({ cursor, today }: { cursor: string; today: string }) 
           const showAll = expanded.has(key)
           const visible = showAll ? occs : occs.slice(0, MAX_VISIBLE)
           const hidden = occs.length - visible.length
+          const classCount = showClasses ? blocksOn(classBlocks, key).length : 0
 
           return (
             <DayDrop
@@ -100,6 +104,12 @@ export function MonthGrid({ cursor, today }: { cursor: string; today: string }) 
                 {visible.map((occ) => (
                   <DraggableChip key={occ.key} occ={occ} today={today} />
                 ))}
+                {classCount > 0 && (
+                  <span className="flex items-center gap-1 px-1 text-xs text-fg-subtle">
+                    <Icon icon={GraduationCap} size={12} />
+                    {classCount} {classCount === 1 ? 'class' : 'classes'}
+                  </span>
+                )}
                 {hidden > 0 && (
                   <button
                     type="button"

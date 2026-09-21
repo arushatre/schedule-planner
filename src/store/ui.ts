@@ -3,10 +3,11 @@ import { create } from 'zustand'
 import { EMPTY_FILTERS } from '@/lib/filters'
 import type { Filters, GroupKey, SortKey } from '@/lib/filters'
 import { todayStr } from '@/lib/dates'
+import { readStored, writeStored } from '@/lib/persist'
 
 export type View = 'today' | 'list' | 'calendar' | 'kit'
 export type CalendarMode = 'month' | 'week' | 'day' | 'agenda'
-export type Dialog = 'categories' | 'backup' | null
+export type Dialog = 'categories' | 'schedule' | 'backup' | null
 
 export type EditorState =
   | { mode: 'new'; dueDate: string | null }
@@ -31,6 +32,8 @@ interface UiState {
   calendarCursor: string
   setCalendarMode: (mode: CalendarMode) => void
   setCalendarCursor: (date: string) => void
+  showClasses: boolean
+  setShowClasses: (show: boolean) => void
 
   filters: Filters
   sort: SortKey
@@ -63,6 +66,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
   calendarCursor: todayStr(),
   setCalendarMode: (calendarMode) => set({ calendarMode }),
   setCalendarCursor: (calendarCursor) => set({ calendarCursor }),
+  showClasses: readStored('daybook:showClasses') !== 'false',
+  setShowClasses: (showClasses) => {
+    writeStored('daybook:showClasses', String(showClasses))
+    set({ showClasses })
+  },
 
   filters: EMPTY_FILTERS,
   sort: 'due',

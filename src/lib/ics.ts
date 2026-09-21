@@ -1,6 +1,6 @@
 import { addDays, addHours, format, parse } from 'date-fns'
 
-import type { Category, Task } from '@/types/model'
+import type { Category, ClassBlock, Task } from '@/types/model'
 import { fromDateStr, toDateStr } from './dates'
 import { isRecurring } from './recurrence'
 
@@ -90,7 +90,12 @@ function event(
 }
 
 /** Builds an iCalendar file with one event per dated task (RRULE for repeats). */
-export function buildIcs(tasks: Task[], categories: Category[], now: Date = new Date()): string {
+export function buildIcs(
+  tasks: Task[],
+  categories: Category[],
+  now: Date = new Date(),
+  classBlocks: ClassBlock[] = [],
+): string {
   // DTSTAMP is always UTC (e.g. 20260921T231500Z).
   const dtstamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Daybook//Tasks//EN', 'CALSCALE:GREGORIAN']
@@ -115,6 +120,26 @@ export function buildIcs(tasks: Task[], categories: Category[], now: Date = new 
     for (const [original, target] of moved) {
       lines.push(...event(task, categoryName, `${task.id}-moved-${original}`, target, dtstamp))
     }
+  }
+
+  for (const block of classBlocks) {
+    if (block.weekdays.length === 0) continue
+    // DTSTART must itself be a matching weekday: use the first one on/after today.
+    let start = fromDateStr(toDateStr(now))
+    while (!block.weekdays.includes(start.getDay())) start = addDays(start, 1)
+    const date = toDateStr(start)
+    const lines2 = [
+      'BEGIN:VEVENT',
+      `UID:class-${block.id}@daybook`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${stamp(localDateTime(date, block.startTime))}`,
+      `DTEND:${stamp(localDateTime(date, block.endTime))}`,
+      `RRULE:FREQ=WEEKLY;BYDAY=${block.weekdays.map((day) => BYDAY[day]).join(',')}`,
+      `SUMMARY:${escapeText(block.title)}`,
+    ]
+    if (block.location) lines2.push(`LOCATION:${escapeText(block.location)}`)
+    lines2.push('CATEGORIES:Class', 'END:VEVENT')
+    lines.push(...lines2)
   }
 
   lines.push('END:VCALENDAR')

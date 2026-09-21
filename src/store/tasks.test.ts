@@ -6,8 +6,8 @@ import { makeTask } from '@/lib/tasks'
 import { useTasksStore } from './tasks'
 
 async function reset() {
-  await Promise.all([db.tasks.clear(), db.categories.clear(), db.meta.clear()])
-  useTasksStore.setState({ ready: false, error: null, tasks: [], categories: [] })
+  await Promise.all([db.tasks.clear(), db.categories.clear(), db.meta.clear(), db.classBlocks.clear()])
+  useTasksStore.setState({ ready: false, error: null, tasks: [], categories: [], classBlocks: [] })
 }
 
 describe('tasks store + Dexie', () => {
@@ -104,11 +104,30 @@ describe('tasks store + Dexie', () => {
     const store = useTasksStore.getState()
     await store.init()
     await store.createTask(makeTask({ title: 'Old', categoryId: 'c' }))
-    await store.importAll(
-      [makeTask({ title: 'New', categoryId: 'x' })],
-      [{ id: 'x', name: 'X', colorKey: 'plum', archived: false, order: 0, createdAt: 0 }],
-    )
+    await store.importAll({
+      tasks: [makeTask({ title: 'New', categoryId: 'x' })],
+      categories: [{ id: 'x', name: 'X', colorKey: 'plum', archived: false, order: 0, createdAt: 0 }],
+      classBlocks: [
+        { id: 'b', title: 'Math', location: '', weekdays: [1], startTime: '09:00', endTime: '10:00', colorKey: 'slate', createdAt: 0 },
+      ],
+    })
     expect((await db.tasks.toArray()).map((t) => t.title)).toEqual(['New'])
     expect(useTasksStore.getState().categories.map((c) => c.name)).toEqual(['X'])
+    expect((await db.classBlocks.toArray()).map((b) => b.title)).toEqual(['Math'])
+  })
+
+  it('saves, updates and deletes class blocks with undo', async () => {
+    const store = useTasksStore.getState()
+    await store.init()
+    const block = { id: 'b1', title: 'Math', location: '', weekdays: [1, 3], startTime: '09:00', endTime: '09:50', colorKey: 'plum' as const, createdAt: 1 }
+    await store.saveClassBlock(block)
+    await store.saveClassBlock({ ...block, title: 'Math II' })
+    expect(useTasksStore.getState().classBlocks.map((b) => b.title)).toEqual(['Math II'])
+    expect(await db.classBlocks.count()).toBe(1)
+    const undo = await store.deleteClassBlock('b1')
+    expect(await db.classBlocks.count()).toBe(0)
+    await undo()
+    expect(useTasksStore.getState().classBlocks).toHaveLength(1)
+    expect(await db.classBlocks.count()).toBe(1)
   })
 })

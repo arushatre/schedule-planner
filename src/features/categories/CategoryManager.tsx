@@ -1,40 +1,16 @@
 import { Archive, ArchiveRestore, Plus } from 'lucide-react'
 import { useState } from 'react'
 
+import { Swatches } from '@/components/task/Swatches'
 import { CategoryDot } from '@/components/task/TaskBits'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { TextInput } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
-import { cx } from '@/lib/cx'
-import { PALETTE, PALETTE_KEYS } from '@/lib/palette'
 import type { PaletteKey } from '@/lib/palette'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { Category } from '@/types/model'
-
-function Swatches({ value, onChange }: { value: PaletteKey; onChange: (key: PaletteKey) => void }) {
-  return (
-    <div role="radiogroup" aria-label="Color" className="flex flex-wrap gap-2">
-      {PALETTE_KEYS.map((key) => (
-        <button
-          key={key}
-          type="button"
-          role="radio"
-          aria-checked={key === value}
-          aria-label={PALETTE[key].label}
-          title={PALETTE[key].label}
-          onClick={() => onChange(key)}
-          className={cx(
-            'h-7 w-7 rounded-full border-2 transition-colors',
-            PALETTE[key].solid,
-            key === value ? 'border-fg' : 'border-transparent hover:border-fg-subtle',
-          )}
-        />
-      ))}
-    </div>
-  )
-}
 
 function CategoryRow({ category }: { category: Category }) {
   const saveCategory = useTasksStore((state) => state.saveCategory)

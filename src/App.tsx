@@ -3,6 +3,7 @@ import {
   CalendarCheck,
   CalendarDays,
   DatabaseZap,
+  GraduationCap,
   HardDriveDownload,
   ListChecks,
   Plus,
@@ -20,6 +21,7 @@ import { ToastHost } from '@/components/ui/ToastHost'
 import { CalendarView } from '@/features/calendar/CalendarView'
 import { CategoryManager } from '@/features/categories/CategoryManager'
 import { KitPage } from '@/features/kit/KitPage'
+import { ScheduleManager } from '@/features/schedule/ScheduleManager'
 import { ListView } from '@/features/list/ListView'
 import { BackupDialog } from '@/features/settings/BackupDialog'
 import { TodayView } from '@/features/today/TodayView'
@@ -127,6 +129,9 @@ export function App() {
               <Button variant="ghost" size="sm" icon={Tags} onClick={() => openDialog('categories')}>
                 <span className="max-sm:sr-only">Categories</span>
               </Button>
+              <Button variant="ghost" size="sm" icon={GraduationCap} onClick={() => openDialog('schedule')}>
+                <span className="max-sm:sr-only">Schedule</span>
+              </Button>
               <Button variant="ghost" size="sm" icon={HardDriveDownload} onClick={() => openDialog('backup')}>
                 <span className="max-sm:sr-only">Backup</span>
               </Button>
@@ -152,6 +157,7 @@ export function App() {
         <>
           <TaskEditor />
           <CategoryManager />
+          <ScheduleManager />
           <BackupDialog />
         </>
       )}
