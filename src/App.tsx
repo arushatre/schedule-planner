@@ -1,11 +1,30 @@
 import { format } from 'date-fns'
-import { CalendarCheck, CalendarDays, ListChecks, SwatchBook } from 'lucide-react'
+import {
+  CalendarCheck,
+  CalendarDays,
+  DatabaseZap,
+  HardDriveDownload,
+  ListChecks,
+  Plus,
+  SwatchBook,
+  Tags,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { useEffect } from 'react'
 
+import { TaskEditor } from '@/components/task/TaskEditor'
+import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
+import { ToastHost } from '@/components/ui/ToastHost'
+import { CalendarView } from '@/features/calendar/CalendarView'
+import { CategoryManager } from '@/features/categories/CategoryManager'
 import { KitPage } from '@/features/kit/KitPage'
+import { ListView } from '@/features/list/ListView'
+import { BackupDialog } from '@/features/settings/BackupDialog'
+import { TodayView } from '@/features/today/TodayView'
 import { cx } from '@/lib/cx'
+import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { View } from '@/store/ui'
 
@@ -21,24 +40,6 @@ const NAV: NavItem[] = [
   { view: 'calendar', label: 'Calendar', icon: CalendarDays },
   ...(import.meta.env.DEV ? [{ view: 'kit' as const, label: 'UI kit', icon: SwatchBook }] : []),
 ]
-
-const PLACEHOLDERS: Record<Exclude<View, 'kit'>, { title: string; description: string; icon: LucideIcon }> = {
-  today: {
-    title: 'Nothing due today',
-    description: 'Tasks due today, anything overdue and your week ahead will show up here.',
-    icon: CalendarCheck,
-  },
-  list: {
-    title: 'No tasks yet',
-    description: 'Every task you add will appear here, ready to filter, group and check off.',
-    icon: ListChecks,
-  },
-  calendar: {
-    title: 'Your calendar is empty',
-    description: 'Tasks with a due date will show up on the calendar.',
-    icon: CalendarDays,
-  },
-}
 
 function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean; onSelect: () => void }) {
   return (
@@ -63,9 +64,46 @@ function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean;
 export function App() {
   const view = useUiStore((state) => state.view)
   const setView = useUiStore((state) => state.setView)
+  const openEditor = useUiStore((state) => state.openEditor)
+  const openDialog = useUiStore((state) => state.openDialog)
+  const ready = useTasksStore((state) => state.ready)
+  const error = useTasksStore((state) => state.error)
+  const init = useTasksStore((state) => state.init)
+
+  useEffect(() => {
+    void init()
+  }, [init])
 
   const current = NAV.find((item) => item.view === view) ?? NAV[0]
-  const placeholder = view === 'kit' ? null : PLACEHOLDERS[view]
+
+  let body
+  if (!ready) {
+    body = (
+      <div role="status" aria-label="Loading" className="grid gap-3">
+        {[0, 1, 2].map((row) => (
+          <div key={row} className="h-14 animate-pulse rounded-md border border-line bg-panel" />
+        ))}
+      </div>
+    )
+  } else if (error) {
+    body = (
+      <div className="rounded-lg border border-line bg-raised shadow-card">
+        <EmptyState
+          icon={DatabaseZap}
+          title="Can’t open local storage"
+          description={`Daybook keeps your tasks in this browser’s IndexedDB, and it isn’t available (${error}). Private windows and some strict privacy settings block it. Try a regular window.`}
+        />
+      </div>
+    )
+  } else if (view === 'today') {
+    body = <TodayView />
+  } else if (view === 'list') {
+    body = <ListView />
+  } else if (view === 'calendar') {
+    body = <CalendarView />
+  } else if (import.meta.env.DEV) {
+    body = <KitPage />
+  }
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -73,47 +111,51 @@ export function App() {
         <div className="mb-6 px-3 pt-1 font-display text-lg">Daybook</div>
         <nav aria-label="Primary" className="flex flex-col gap-1">
           {NAV.map((item) => (
-            <NavButton
-              key={item.view}
-              item={item}
-              active={item.view === view}
-              onSelect={() => setView(item.view)}
-            />
+            <NavButton key={item.view} item={item} active={item.view === view} onSelect={() => setView(item.view)} />
           ))}
         </nav>
       </aside>
 
-      <main className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-10 md:pb-10 md:pt-10">
-        <header className="mb-8">
-          <p className="text-sm text-fg-muted">{format(new Date(), 'EEEE, MMMM d')}</p>
-          <h1 className="font-display text-xl">{current?.label}</h1>
-        </header>
-
-        {view === 'kit' && import.meta.env.DEV && <KitPage />}
-        {placeholder && (
-          <div className="rounded-lg border border-line bg-raised shadow-card">
-            <EmptyState
-              icon={placeholder.icon}
-              title={placeholder.title}
-              description={placeholder.description}
-            />
+      <main className="min-w-0 flex-1 px-4 pb-28 pt-6 md:px-10 md:pb-10 md:pt-10">
+        <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm text-fg-muted">{format(new Date(), 'EEEE, MMMM d')}</p>
+            <h1 className="font-display text-xl">{current?.label}</h1>
           </div>
-        )}
+          {ready && !error && view !== 'kit' && (
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" icon={Tags} onClick={() => openDialog('categories')}>
+                <span className="max-sm:sr-only">Categories</span>
+              </Button>
+              <Button variant="ghost" size="sm" icon={HardDriveDownload} onClick={() => openDialog('backup')}>
+                <span className="max-sm:sr-only">Backup</span>
+              </Button>
+              <Button variant="primary" icon={Plus} onClick={() => openEditor({ mode: 'new', dueDate: null })}>
+                New task
+              </Button>
+            </div>
+          )}
+        </header>
+        <div className="mx-auto max-w-5xl">{body}</div>
       </main>
 
       <nav
         aria-label="Primary mobile"
-        className="fixed inset-x-0 bottom-0 flex gap-1 border-t border-line bg-panel p-2 shadow-pop md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex gap-1 border-t border-line bg-panel p-2 shadow-pop md:hidden"
       >
         {NAV.map((item) => (
-          <NavButton
-            key={item.view}
-            item={item}
-            active={item.view === view}
-            onSelect={() => setView(item.view)}
-          />
+          <NavButton key={item.view} item={item} active={item.view === view} onSelect={() => setView(item.view)} />
         ))}
       </nav>
+
+      {ready && !error && (
+        <>
+          <TaskEditor />
+          <CategoryManager />
+          <BackupDialog />
+        </>
+      )}
+      <ToastHost />
     </div>
   )
 }
