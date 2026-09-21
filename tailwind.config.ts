@@ -85,7 +85,7 @@ const config: Config = {
       inset: 'inset 0 1px 2px rgb(var(--shadow) / 0.1)',
       card: '0 1px 2px rgb(var(--shadow) / 0.05), 0 2px 8px -2px rgb(var(--shadow) / 0.06)',
       lift:
-        'inset 0 1px 0 rgb(255 255 255 / 0.65), 0 1px 2px rgb(var(--shadow) / 0.08), 0 6px 16px -6px rgb(var(--shadow) / 0.14)',
+        'inset 0 1px 0 var(--inset-highlight), 0 1px 2px rgb(var(--shadow) / 0.08), 0 6px 16px -6px rgb(var(--shadow) / 0.14)',
       pop: '0 2px 4px rgb(var(--shadow) / 0.06), 0 12px 32px -8px rgb(var(--shadow) / 0.24)',
     },
     extend: {

@@ -8,6 +8,16 @@
     <meta name="theme-color" content="#2F5D62" />
     <meta name="description" content="A local-first calendar and task list." />
     <title>Daybook</title>
+    <script>
+      // Apply the saved/system theme before first paint to avoid a light flash.
+      ;(function () {
+        try {
+          var pref = localStorage.getItem('daybook:theme') || 'system'
+          var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -4,10 +4,12 @@ import { EMPTY_FILTERS } from '@/lib/filters'
 import type { Filters, GroupKey, SortKey } from '@/lib/filters'
 import { todayStr } from '@/lib/dates'
 import { readStored, writeStored } from '@/lib/persist'
+import { THEME_KEY, isThemePreference } from '@/lib/theme'
+import type { ThemePreference } from '@/lib/theme'
 
 export type View = 'today' | 'list' | 'calendar' | 'kit'
 export type CalendarMode = 'month' | 'week' | 'day' | 'agenda'
-export type Dialog = 'categories' | 'schedule' | 'backup' | 'shortcuts' | null
+export type Dialog = 'categories' | 'schedule' | 'settings' | 'shortcuts' | null
 
 export type EditorState =
   | { mode: 'new'; dueDate: string | null }
@@ -25,6 +27,9 @@ const TOAST_MS = 6000
 let toastId = 0
 
 interface UiState {
+  theme: ThemePreference
+  setTheme: (theme: ThemePreference) => void
+
   view: View
   setView: (view: View) => void
 
@@ -67,7 +72,15 @@ interface UiState {
   dismissToast: (id: number) => void
 }
 
+const storedTheme = readStored(THEME_KEY)
+
 export const useUiStore = create<UiState>()((set, get) => ({
+  theme: isThemePreference(storedTheme) ? storedTheme : 'system',
+  setTheme: (theme) => {
+    writeStored(THEME_KEY, theme)
+    set({ theme })
+  },
+
   view: 'today',
   setView: (view) => set({ view }),
 

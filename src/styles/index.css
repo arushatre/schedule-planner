@@ -25,6 +25,7 @@
     --overdue-soft: 246 231 225;
     --scrim: 38 35 31;
     --shadow: 38 35 31;
+    --inset-highlight: rgb(255 255 255 / 0.65);
 
     /* Curated category palette: muted, desaturated, never neon. */
     --cat-clay: 184 115 90;
@@ -35,6 +36,46 @@
     --cat-teal: 78 138 133;
     --cat-rose: 179 111 126;
     --cat-graphite: 107 111 118;
+  }
+
+  /* Dark theme: warm charcoal with the same layered depth; category colors are
+     lifted slightly so they keep their contrast without turning neon. */
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --canvas: 27 25 23;
+    --canvas-top: 34 32 29;
+    --canvas-bottom: 22 21 19;
+    --panel: 37 35 31;
+    --raised: 46 43 39;
+    --sunken: 24 22 20;
+    --line: 60 56 50;
+    --line-strong: 84 79 71;
+    --fg: 236 231 221;
+    --fg-muted: 178 171 158;
+    --fg-subtle: 135 129 117;
+    --accent: 112 170 174;
+    --accent-hover: 140 190 193;
+    --accent-soft: 37 61 64;
+    --accent-fg: 18 25 26;
+    --overdue: 218 132 108;
+    --overdue-soft: 64 40 34;
+    --scrim: 0 0 0;
+    --shadow: 0 0 0;
+    --inset-highlight: rgb(255 255 255 / 0.05);
+
+    --cat-clay: 205 137 112;
+    --cat-moss: 139 166 121;
+    --cat-slate: 123 153 183;
+    --cat-plum: 171 129 159;
+    --cat-ochre: 201 167 93;
+    --cat-teal: 103 166 159;
+    --cat-rose: 201 133 149;
+    --cat-graphite: 139 144 151;
+  }
+
+  :root[data-theme='dark'] body::before {
+    filter: invert(1);
+    opacity: 0.03;
   }
 
   html {

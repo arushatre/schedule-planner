@@ -5,15 +5,20 @@ import type { ChangeEvent } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
+import { Segmented } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { downloadFile, parseBackup, serializeBackup } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import { buildIcs } from '@/lib/ics'
+import { THEME_LABEL } from '@/lib/theme'
+import type { ThemePreference } from '@/lib/theme'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 
-export function BackupDialog() {
-  const open = useUiStore((state) => state.dialog === 'backup')
+export function SettingsDialog() {
+  const open = useUiStore((state) => state.dialog === 'settings')
+  const theme = useUiStore((state) => state.theme)
+  const setTheme = useUiStore((state) => state.setTheme)
   const openDialog = useUiStore((state) => state.openDialog)
   const pushToast = useUiStore((state) => state.pushToast)
   const tasks = useTasksStore((state) => state.tasks)
@@ -57,9 +62,26 @@ export function BackupDialog() {
   }
 
   return (
-    <Dialog open={open} onClose={close} title="Backup & export">
+    <Dialog open={open} onClose={close} title="Settings">
       <div className="grid gap-5">
         <section className="grid gap-2">
+          <h3 className="text-base font-medium">Appearance</h3>
+          <p className="text-sm text-fg-muted">
+            “System” follows your device and switches automatically between light and dark.
+          </p>
+          <Segmented
+            ariaLabel="Theme"
+            value={theme}
+            onChange={setTheme}
+            options={(Object.keys(THEME_LABEL) as ThemePreference[]).map((value) => ({
+              value,
+              label: THEME_LABEL[value],
+            }))}
+            className="w-full sm:w-72"
+          />
+        </section>
+
+        <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Export</h3>
           <p className="text-sm text-fg-muted">
             Everything lives in this browser. Download a backup to keep it safe or move it to another

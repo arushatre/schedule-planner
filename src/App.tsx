@@ -4,7 +4,7 @@ import {
   CalendarDays,
   DatabaseZap,
   GraduationCap,
-  HardDriveDownload,
+  Settings,
   ListChecks,
   Plus,
   SwatchBook,
@@ -23,10 +23,11 @@ import { CategoryManager } from '@/features/categories/CategoryManager'
 import { KitPage } from '@/features/kit/KitPage'
 import { ScheduleManager } from '@/features/schedule/ScheduleManager'
 import { ListView } from '@/features/list/ListView'
-import { BackupDialog } from '@/features/settings/BackupDialog'
+import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { Kbd, ShortcutsDialog } from '@/features/settings/ShortcutsDialog'
 import { TodayView } from '@/features/today/TodayView'
 import { useShortcuts } from '@/hooks/useShortcuts'
+import { useTheme } from '@/hooks/useTheme'
 import { cx } from '@/lib/cx'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
@@ -79,6 +80,7 @@ export function App() {
   }, [init])
 
   useShortcuts()
+  useTheme()
 
   const current = NAV.find((item) => item.view === view) ?? NAV[0]
 
@@ -144,8 +146,8 @@ export function App() {
               <Button variant="ghost" size="sm" icon={GraduationCap} onClick={() => openDialog('schedule')}>
                 <span className="max-sm:sr-only">Schedule</span>
               </Button>
-              <Button variant="ghost" size="sm" icon={HardDriveDownload} onClick={() => openDialog('backup')}>
-                <span className="max-sm:sr-only">Backup</span>
+              <Button variant="ghost" size="sm" icon={Settings} onClick={() => openDialog('settings')}>
+                <span className="max-sm:sr-only">Settings</span>
               </Button>
               <Button variant="primary" icon={Plus} onClick={openNewTask}>
                 New task
@@ -170,7 +172,7 @@ export function App() {
           <TaskEditor />
           <CategoryManager />
           <ScheduleManager />
-          <BackupDialog />
+          <SettingsDialog />
           <ShortcutsDialog />
         </>
       )}
