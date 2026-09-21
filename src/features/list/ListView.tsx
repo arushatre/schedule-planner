@@ -1,5 +1,5 @@
 import { CalendarClock, CheckCheck, ListChecks, ListFilter, Plus, Search, Trash2, X } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { CategoryDot } from '@/components/task/TaskBits'
 import { TaskRow } from '@/components/task/TaskRow'
@@ -42,6 +42,8 @@ export function ListView() {
   const tasks = useTasksStore((state) => state.tasks)
   const categories = useTasksStore((state) => state.categories)
   const { filters, sort, group, setFilters, clearFilters, setSort, setGroup, openEditor } = useUiStore()
+  const searchFocusRequested = useUiStore((state) => state.searchFocusRequested)
+  const consumeSearchFocus = useUiStore((state) => state.consumeSearchFocus)
   const { completeMany, moveMany, remove } = useTaskActions()
 
   const [panelOpen, setPanelOpen] = useState(false)
@@ -49,6 +51,12 @@ export function ListView() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [moveOpen, setMoveOpen] = useState(false)
   const [moveDate, setMoveDate] = useState<string | null>(todayStr())
+
+  useEffect(() => {
+    if (!searchFocusRequested) return
+    document.querySelector<HTMLInputElement>('input[aria-label="Search tasks"]')?.focus()
+    consumeSearchFocus()
+  }, [searchFocusRequested, consumeSearchFocus])
 
   const today = todayStr()
   const all = useMemo(() => listOccurrences(tasks, today), [tasks, today])

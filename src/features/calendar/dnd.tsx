@@ -2,6 +2,7 @@ import { useDraggable, useDroppable } from '@dnd-kit/core'
 import type { ReactNode } from 'react'
 
 import { Chip } from '@/components/ui/Chip'
+import { useTaskFocus } from '@/hooks/useTaskFocus'
 import { cx } from '@/lib/cx'
 import { formatTime } from '@/lib/dates'
 import { isOverdue } from '@/lib/recurrence'
@@ -35,6 +36,7 @@ export function OccurrenceChip({ occ, today }: { occ: Occurrence; today: string 
 
 export function DraggableChip({ occ, today }: { occ: Occurrence; today: string }) {
   const openEditor = useUiStore((state) => state.openEditor)
+  const focusHandlers = useTaskFocus(occ.task.id)
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: occ.key, data: { occ } satisfies DragData })
 
   return (
@@ -43,6 +45,7 @@ export function DraggableChip({ occ, today }: { occ: Occurrence; today: string }
       type="button"
       {...listeners}
       {...attributes}
+      {...focusHandlers}
       onClick={() => openEditor({ mode: 'edit', taskId: occ.task.id })}
       className={cx('block w-full cursor-grab touch-manipulation text-left active:cursor-grabbing', isDragging && 'opacity-40')}
     >

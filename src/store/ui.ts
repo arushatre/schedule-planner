@@ -7,7 +7,7 @@ import { readStored, writeStored } from '@/lib/persist'
 
 export type View = 'today' | 'list' | 'calendar' | 'kit'
 export type CalendarMode = 'month' | 'week' | 'day' | 'agenda'
-export type Dialog = 'categories' | 'schedule' | 'backup' | null
+export type Dialog = 'categories' | 'schedule' | 'backup' | 'shortcuts' | null
 
 export type EditorState =
   | { mode: 'new'; dueDate: string | null }
@@ -43,7 +43,16 @@ interface UiState {
   setSort: (sort: SortKey) => void
   setGroup: (group: GroupKey) => void
 
+  /** Task under the pointer or focus, so `e` knows what to edit. */
+  focusedTaskId: string | null
+  setFocusedTask: (id: string | null) => void
+  /** One-shot request for the list view to focus its search box; consumed on use. */
+  searchFocusRequested: boolean
+  requestSearchFocus: () => void
+  consumeSearchFocus: () => void
+
   editor: EditorState
+  openNewTask: () => void
   openEditor: (state: Exclude<EditorState, null>) => void
   closeEditor: () => void
 
@@ -80,7 +89,20 @@ export const useUiStore = create<UiState>()((set, get) => ({
   setSort: (sort) => set({ sort }),
   setGroup: (group) => set({ group }),
 
+  focusedTaskId: null,
+  setFocusedTask: (focusedTaskId) => set({ focusedTaskId }),
+  searchFocusRequested: false,
+  requestSearchFocus: () => set({ view: 'list', searchFocusRequested: true }),
+  consumeSearchFocus: () => set({ searchFocusRequested: false }),
+
   editor: null,
+  // New tasks start on a sensible date for where you are: Today, or the day you're looking at.
+  openNewTask: () => {
+    const { view, calendarMode, calendarCursor } = get()
+    const dueDate =
+      view === 'today' ? todayStr() : view === 'calendar' && calendarMode === 'day' ? calendarCursor : null
+    set({ editor: { mode: 'new', dueDate } })
+  },
   openEditor: (editor) => set({ editor }),
   closeEditor: () => set({ editor: null }),
 

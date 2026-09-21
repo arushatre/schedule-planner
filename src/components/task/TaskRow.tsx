@@ -3,6 +3,7 @@ import { ClockAlert, Repeat } from 'lucide-react'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Icon } from '@/components/ui/Icon'
 import { useTaskActions } from '@/hooks/useTaskActions'
+import { useTaskFocus } from '@/hooks/useTaskFocus'
 import { cx } from '@/lib/cx'
 import { formatTime, friendlyDate, todayStr } from '@/lib/dates'
 import { isOverdue, isRecurring } from '@/lib/recurrence'
@@ -26,6 +27,7 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
   const categories = useTasksStore((state) => state.categories)
   const openEditor = useUiStore((state) => state.openEditor)
   const { setDone } = useTaskActions()
+  const focusHandlers = useTaskFocus(occ.task.id)
 
   const { task } = occ
   const category = categoryFor(task.categoryId, categories)
@@ -34,6 +36,7 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
 
   return (
     <div
+      {...focusHandlers}
       className={cx(
         'relative flex items-start gap-3 overflow-hidden rounded-md border py-2.5 pl-4 pr-3 shadow-card transition-colors',
         overdue

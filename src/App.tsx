@@ -24,7 +24,9 @@ import { KitPage } from '@/features/kit/KitPage'
 import { ScheduleManager } from '@/features/schedule/ScheduleManager'
 import { ListView } from '@/features/list/ListView'
 import { BackupDialog } from '@/features/settings/BackupDialog'
+import { Kbd, ShortcutsDialog } from '@/features/settings/ShortcutsDialog'
 import { TodayView } from '@/features/today/TodayView'
+import { useShortcuts } from '@/hooks/useShortcuts'
 import { cx } from '@/lib/cx'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
@@ -66,7 +68,7 @@ function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean;
 export function App() {
   const view = useUiStore((state) => state.view)
   const setView = useUiStore((state) => state.setView)
-  const openEditor = useUiStore((state) => state.openEditor)
+  const openNewTask = useUiStore((state) => state.openNewTask)
   const openDialog = useUiStore((state) => state.openDialog)
   const ready = useTasksStore((state) => state.ready)
   const error = useTasksStore((state) => state.error)
@@ -75,6 +77,8 @@ export function App() {
   useEffect(() => {
     void init()
   }, [init])
+
+  useShortcuts()
 
   const current = NAV.find((item) => item.view === view) ?? NAV[0]
 
@@ -116,6 +120,14 @@ export function App() {
             <NavButton key={item.view} item={item} active={item.view === view} onSelect={() => setView(item.view)} />
           ))}
         </nav>
+        <button
+          type="button"
+          onClick={() => openDialog('shortcuts')}
+          className="mt-auto flex items-center justify-between rounded-md border border-transparent px-3 py-2 text-sm text-fg-muted transition-colors hover:bg-sunken hover:text-fg"
+        >
+          Keyboard shortcuts
+          <Kbd>?</Kbd>
+        </button>
       </aside>
 
       <main className="min-w-0 flex-1 px-4 pb-28 pt-6 md:px-10 md:pb-10 md:pt-10">
@@ -135,7 +147,7 @@ export function App() {
               <Button variant="ghost" size="sm" icon={HardDriveDownload} onClick={() => openDialog('backup')}>
                 <span className="max-sm:sr-only">Backup</span>
               </Button>
-              <Button variant="primary" icon={Plus} onClick={() => openEditor({ mode: 'new', dueDate: null })}>
+              <Button variant="primary" icon={Plus} onClick={openNewTask}>
                 New task
               </Button>
             </div>
@@ -159,6 +171,7 @@ export function App() {
           <CategoryManager />
           <ScheduleManager />
           <BackupDialog />
+          <ShortcutsDialog />
         </>
       )}
       <ToastHost />
