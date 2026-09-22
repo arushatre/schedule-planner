@@ -20,7 +20,7 @@ export function DayPanel({ date }: { date: string }) {
 
   return (
     <div className="grid gap-4">
-      <QuickAdd dueDate={date} placeholder="Quick add a task for this day…" />
+      <QuickAdd dueDate={date} label="Quick add a task for this day…" />
       {classes.length > 0 && (
         <section aria-label="Classes" className="grid gap-2">
           {classes.map((block) => (

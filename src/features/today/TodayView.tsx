@@ -65,10 +65,10 @@ export function TodayView() {
       <div className="grid gap-3 sm:grid-cols-3">
         <Stat icon={CheckCheck} value={stats.doneToday} label="Completed today" />
         <Stat icon={CalendarCheck} value={stats.doneThisWeek} label="Completed this week" />
-        <Stat icon={Flame} value={stats.streak} label={stats.streak === 1 ? 'Day streak' : 'Day streak'} />
+        <Stat icon={Flame} value={stats.streak} label="Day streak" />
       </div>
 
-      <QuickAdd dueDate={today} placeholder="Add a task for today…" />
+      <QuickAdd dueDate={today} label="Add a task for today…" />
 
       {overdue.length > 0 && (
         <Section title="Overdue" count={overdue.length} tone="overdue">
