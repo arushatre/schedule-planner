@@ -2,6 +2,7 @@ import { format } from 'date-fns'
 import {
   CalendarCheck,
   CalendarDays,
+  ChartColumn,
   DatabaseZap,
   GraduationCap,
   Settings,
@@ -20,6 +21,7 @@ import { Icon } from '@/components/ui/Icon'
 import { ToastHost } from '@/components/ui/ToastHost'
 import { CalendarView } from '@/features/calendar/CalendarView'
 import { CategoryManager } from '@/features/categories/CategoryManager'
+import { InsightsView } from '@/features/insights/InsightsView'
 import { KitPage } from '@/features/kit/KitPage'
 import { ScheduleManager } from '@/features/schedule/ScheduleManager'
 import { ListView } from '@/features/list/ListView'
@@ -44,6 +46,7 @@ const NAV: NavItem[] = [
   { view: 'today', label: 'Today', icon: CalendarCheck },
   { view: 'list', label: 'List', icon: ListChecks },
   { view: 'calendar', label: 'Calendar', icon: CalendarDays },
+  { view: 'insights', label: 'Insights', icon: ChartColumn },
   ...(import.meta.env.DEV ? [{ view: 'kit' as const, label: 'UI kit', icon: SwatchBook }] : []),
 ]
 
@@ -111,6 +114,8 @@ export function App() {
     body = <ListView />
   } else if (view === 'calendar') {
     body = <CalendarView />
+  } else if (view === 'insights') {
+    body = <InsightsView />
   } else if (import.meta.env.DEV) {
     body = <KitPage />
   }

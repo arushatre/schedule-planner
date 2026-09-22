@@ -7,7 +7,7 @@ import { readStored, writeStored } from '@/lib/persist'
 import { THEME_KEY, isThemePreference } from '@/lib/theme'
 import type { ThemePreference } from '@/lib/theme'
 
-export type View = 'today' | 'list' | 'calendar' | 'kit'
+export type View = 'today' | 'list' | 'calendar' | 'insights' | 'kit'
 export type ListMode = 'list' | 'board'
 export type CalendarMode = 'month' | 'week' | 'day' | 'agenda'
 export type Dialog = 'categories' | 'schedule' | 'settings' | 'shortcuts' | null

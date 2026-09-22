@@ -4,17 +4,32 @@ import type { Task } from '@/types/model'
 import { WEEK_OPTIONS, fromDateStr, shiftDate, toDateStr } from './dates'
 import { isRecurring } from './recurrence'
 
+export interface CompletionEvent {
+  /** Local YYYY-MM-DD the completion counts toward. */
+  date: string
+  categoryId: string
+}
+
+/**
+ * One event per completion: a one-off task counts on the day it was finished;
+ * a recurring task counts once per completed occurrence.
+ */
+export function completionEvents(tasks: Task[]): CompletionEvent[] {
+  const events: CompletionEvent[] = []
+  for (const task of tasks) {
+    if (isRecurring(task)) {
+      for (const date of task.completedDates) events.push({ date, categoryId: task.categoryId })
+    } else if (task.status === 'done') {
+      events.push({ date: toDateStr(new Date(task.completedAt ?? task.updatedAt)), categoryId: task.categoryId })
+    }
+  }
+  return events
+}
+
 /** How many tasks were completed on each date. */
 export function completionsByDate(tasks: Task[]): Map<string, number> {
   const counts = new Map<string, number>()
-  const bump = (date: string) => counts.set(date, (counts.get(date) ?? 0) + 1)
-  for (const task of tasks) {
-    if (isRecurring(task)) {
-      task.completedDates.forEach(bump)
-    } else if (task.status === 'done') {
-      bump(toDateStr(new Date(task.completedAt ?? task.updatedAt)))
-    }
-  }
+  for (const { date } of completionEvents(tasks)) counts.set(date, (counts.get(date) ?? 0) + 1)
   return counts
 }
 
