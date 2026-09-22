@@ -26,6 +26,7 @@ import { ListView } from '@/features/list/ListView'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { Kbd, ShortcutsDialog } from '@/features/settings/ShortcutsDialog'
 import { TodayView } from '@/features/today/TodayView'
+import { useReminders } from '@/hooks/useReminders'
 import { useShortcuts } from '@/hooks/useShortcuts'
 import { useTheme } from '@/hooks/useTheme'
 import { cx } from '@/lib/cx'
@@ -81,6 +82,7 @@ export function App() {
 
   useShortcuts()
   useTheme()
+  useReminders()
 
   const current = NAV.find((item) => item.view === view) ?? NAV[0]
 

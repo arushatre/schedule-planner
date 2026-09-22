@@ -4,16 +4,55 @@ import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
 import { Button } from '@/components/ui/Button'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Dialog } from '@/components/ui/Dialog'
 import { Segmented } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { downloadFile, parseBackup, serializeBackup } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import { buildIcs } from '@/lib/ics'
+import { notificationSupport, requestNotificationPermission } from '@/lib/notifications'
+import type { NotificationSupport } from '@/lib/notifications'
 import { THEME_LABEL } from '@/lib/theme'
 import type { ThemePreference } from '@/lib/theme'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
+
+const PERMISSION_COPY: Record<NotificationSupport, string> = {
+  unsupported: 'This browser can’t show system notifications, so reminders will appear inside Daybook while it’s open.',
+  granted: 'System notifications are allowed for this site.',
+  default: 'Turn this on and your browser will ask permission to show notifications.',
+  denied:
+    'Notifications are blocked for this site, so reminders will appear inside Daybook instead. To use system notifications, allow them in your browser’s site settings.',
+}
+
+function RemindersSection() {
+  const enabled = useUiStore((state) => state.remindersEnabled)
+  const setEnabled = useUiStore((state) => state.setRemindersEnabled)
+  const [support, setSupport] = useState<NotificationSupport>(notificationSupport)
+
+  const toggle = async (next: boolean) => {
+    // Ask only in response to the user turning reminders on.
+    if (next && support === 'default') setSupport(await requestNotificationPermission())
+    setEnabled(next)
+  }
+
+  return (
+    <section className="grid gap-2 border-t border-line pt-5">
+      <h3 className="text-base font-medium">Reminders</h3>
+      <Checkbox
+        checked={enabled}
+        onChange={(next) => void toggle(next)}
+        label="Remind me at each task’s reminder time"
+      />
+      <p className="text-sm text-fg-muted">{PERMISSION_COPY[support]}</p>
+      <p className="text-sm text-fg-subtle">
+        Reminders fire while Daybook is open in a tab or installed as an app. Your data never leaves this
+        device, so nothing can wake it up while it’s closed.
+      </p>
+    </section>
+  )
+}
 
 export function SettingsDialog() {
   const open = useUiStore((state) => state.dialog === 'settings')
@@ -80,6 +119,8 @@ export function SettingsDialog() {
             className="w-full sm:w-72"
           />
         </section>
+
+        <RemindersSection />
 
         <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Export</h3>

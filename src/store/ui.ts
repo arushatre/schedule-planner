@@ -27,6 +27,9 @@ const TOAST_MS = 6000
 let toastId = 0
 
 interface UiState {
+  remindersEnabled: boolean
+  setRemindersEnabled: (enabled: boolean) => void
+
   theme: ThemePreference
   setTheme: (theme: ThemePreference) => void
 
@@ -75,6 +78,12 @@ interface UiState {
 const storedTheme = readStored(THEME_KEY)
 
 export const useUiStore = create<UiState>()((set, get) => ({
+  remindersEnabled: readStored('daybook:reminders') === 'true',
+  setRemindersEnabled: (remindersEnabled) => {
+    writeStored('daybook:reminders', String(remindersEnabled))
+    set({ remindersEnabled })
+  },
+
   theme: isThemePreference(storedTheme) ? storedTheme : 'system',
   setTheme: (theme) => {
     writeStored(THEME_KEY, theme)

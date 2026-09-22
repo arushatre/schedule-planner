@@ -1,4 +1,4 @@
-import { ClockAlert, Repeat } from 'lucide-react'
+import { Bell, ClockAlert, Repeat } from 'lucide-react'
 
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Icon } from '@/components/ui/Icon'
@@ -87,6 +87,13 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
             </span>
           )}
           {task.dueTime && <span className="tabular">{formatTime(task.dueTime)}</span>}
+          {task.reminderTime && !occ.done && (
+            <span className="tabular inline-flex items-center gap-1" title="Reminder">
+              <Icon icon={Bell} size={14} />
+              <span className="sr-only">Reminder at</span>
+              {formatTime(task.reminderTime)}
+            </span>
+          )}
           {isRecurring(task) && (
             <span className="inline-flex items-center gap-1" title="Repeats">
               <Icon icon={Repeat} size={14} />
