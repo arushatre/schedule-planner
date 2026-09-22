@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
 import { Select } from '@/components/ui/Select'
 import type { SelectOption } from '@/components/ui/Select'
-import { Pill, TextInput } from '@/components/ui/fields'
+import { Pill, Segmented, TextInput } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { friendlyDate, todayStr } from '@/lib/dates'
 import { activeFilterCount, applyFilters, groupOccurrences, sortOccurrences } from '@/lib/filters'
@@ -19,7 +19,14 @@ import { listOccurrences } from '@/lib/recurrence'
 import { categoryFor } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
+import type { ListMode } from '@/store/ui'
 import { PRIORITIES, PRIORITY_LABEL, STATUSES, STATUS_LABEL } from '@/types/model'
+import { Board } from './Board'
+
+const MODE_OPTIONS: { value: ListMode; label: string }[] = [
+  { value: 'list', label: 'List' },
+  { value: 'board', label: 'Board' },
+]
 
 const GROUP_OPTIONS: SelectOption<GroupKey>[] = [
   { value: 'date', label: 'Group by date' },
@@ -41,7 +48,9 @@ function toggle<T>(list: T[], value: T): T[] {
 export function ListView() {
   const tasks = useTasksStore((state) => state.tasks)
   const categories = useTasksStore((state) => state.categories)
-  const { filters, sort, group, setFilters, clearFilters, setSort, setGroup, openEditor } = useUiStore()
+  const { filters, sort, group, listMode, setListMode, setFilters, clearFilters, setSort, setGroup, openEditor } =
+    useUiStore()
+  const board = listMode === 'board'
   const searchFocusRequested = useUiStore((state) => state.searchFocusRequested)
   const consumeSearchFocus = useUiStore((state) => state.consumeSearchFocus)
   const { completeMany, moveMany, remove } = useTaskActions()
@@ -81,6 +90,16 @@ export function ListView() {
 
   return (
     <div className="grid gap-4">
+      <Segmented
+        ariaLabel="Layout"
+        options={MODE_OPTIONS}
+        value={listMode}
+        onChange={(mode) => {
+          exitSelect()
+          setListMode(mode)
+        }}
+        className="justify-self-start"
+      />
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[12rem] flex-1">
           <Icon icon={Search} size={16} className="pointer-events-none absolute left-3 top-3 text-fg-subtle" />
@@ -100,15 +119,19 @@ export function ListView() {
         >
           Filters{activeCount > 0 ? ` · ${activeCount}` : ''}
         </Button>
-        <Select ariaLabel="Group" options={GROUP_OPTIONS} value={group} onChange={setGroup} className="w-44" />
+        {!board && (
+          <Select ariaLabel="Group" options={GROUP_OPTIONS} value={group} onChange={setGroup} className="w-44" />
+        )}
         <Select ariaLabel="Sort" options={SORT_OPTIONS} value={sort} onChange={setSort} className="w-44" />
-        <Button
-          icon={CheckCheck}
-          variant={selecting ? 'primary' : 'secondary'}
-          onClick={() => (selecting ? exitSelect() : setSelecting(true))}
-        >
-          {selecting ? 'Done' : 'Select'}
-        </Button>
+        {!board && (
+          <Button
+            icon={CheckCheck}
+            variant={selecting ? 'primary' : 'secondary'}
+            onClick={() => (selecting ? exitSelect() : setSelecting(true))}
+          >
+            {selecting ? 'Done' : 'Select'}
+          </Button>
+        )}
       </div>
 
       {panelOpen && (
@@ -207,7 +230,7 @@ export function ListView() {
         </div>
       )}
 
-      {selecting && (
+      {selecting && !board && (
         <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 rounded-lg border border-accent/30 bg-accent-soft px-3 py-2 shadow-lift">
           <span className="mr-auto text-base font-medium text-accent">{selected.size} selected</span>
           <Button
@@ -267,6 +290,8 @@ export function ListView() {
             action={<Button onClick={clearFilters}>Clear filters</Button>}
           />
         </div>
+      ) : board ? (
+        <Board occurrences={visible} />
       ) : (
         <div className="grid gap-6">
           {groups.map((bucket) => (

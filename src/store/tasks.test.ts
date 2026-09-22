@@ -89,6 +89,43 @@ describe('tasks store + Dexie', () => {
     expect(useTasksStore.getState().tasks.find((t) => t.id === habit.id)?.exceptions).toEqual({})
   })
 
+  it('moves a one-off task across board columns and stamps completion', async () => {
+    const store = useTasksStore.getState()
+    await store.init()
+    const task = await store.createTask(makeTask({ title: 'Card', categoryId: 'c', dueDate: '2026-09-22' }))
+    const [occ] = expandOccurrences([task], '2026-09-22', '2026-09-22')
+    if (!occ) throw new Error('no occurrence')
+
+    await store.setOccurrenceStatus(occ, 'in_progress')
+    expect(useTasksStore.getState().tasks[0]).toMatchObject({ status: 'in_progress', completedAt: null })
+
+    const undo = await store.setOccurrenceStatus(occ, 'done')
+    const done = useTasksStore.getState().tasks[0]
+    expect(done?.status).toBe('done')
+    expect(done?.completedAt).toEqual(expect.any(Number))
+
+    await undo()
+    expect(useTasksStore.getState().tasks[0]).toMatchObject({ status: 'in_progress', completedAt: null })
+    await store.setOccurrenceStatus(occ, 'not_started')
+    expect((await db.tasks.get(task.id))?.status).toBe('not_started')
+  })
+
+  it('board "done" on a recurring task completes only that occurrence', async () => {
+    const store = useTasksStore.getState()
+    await store.init()
+    const habit = await store.createTask(
+      makeTask({ title: 'Habit', categoryId: 'c', dueDate: '2026-09-21', recurrence: { kind: 'daily', weekdays: [], until: null } }),
+    )
+    const [first] = expandOccurrences([habit], '2026-09-21', '2026-09-23')
+    if (!first) throw new Error('no occurrence')
+    await store.setOccurrenceStatus(first, 'done')
+    const stored = useTasksStore.getState().tasks[0]
+    expect(stored?.completedDates).toEqual(['2026-09-21'])
+    expect(stored?.status).toBe('not_started')
+    await store.setOccurrenceStatus({ ...first, done: true }, 'not_started')
+    expect(useTasksStore.getState().tasks[0]?.completedDates).toEqual([])
+  })
+
   it('deletes tasks and can restore them', async () => {
     const store = useTasksStore.getState()
     await store.init()

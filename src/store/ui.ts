@@ -8,6 +8,7 @@ import { THEME_KEY, isThemePreference } from '@/lib/theme'
 import type { ThemePreference } from '@/lib/theme'
 
 export type View = 'today' | 'list' | 'calendar' | 'kit'
+export type ListMode = 'list' | 'board'
 export type CalendarMode = 'month' | 'week' | 'day' | 'agenda'
 export type Dialog = 'categories' | 'schedule' | 'settings' | 'shortcuts' | null
 
@@ -43,6 +44,8 @@ interface UiState {
   showClasses: boolean
   setShowClasses: (show: boolean) => void
 
+  listMode: ListMode
+  setListMode: (mode: ListMode) => void
   filters: Filters
   sort: SortKey
   group: GroupKey
@@ -103,6 +106,11 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({ showClasses })
   },
 
+  listMode: readStored('daybook:listMode') === 'board' ? 'board' : 'list',
+  setListMode: (listMode) => {
+    writeStored('daybook:listMode', listMode)
+    set({ listMode })
+  },
   filters: EMPTY_FILTERS,
   sort: 'due',
   group: 'date',

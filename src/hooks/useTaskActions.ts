@@ -2,7 +2,8 @@ import { friendlyDate } from '@/lib/dates'
 import { useTasksStore } from '@/store/tasks'
 import type { Undo } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
-import type { Occurrence } from '@/types/model'
+import { STATUS_LABEL } from '@/types/model'
+import type { Occurrence, Status } from '@/types/model'
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
 
@@ -30,6 +31,16 @@ export function useTaskActions() {
       const undo = await store.getState().setOccurrenceDone(occ, done)
       pushToast({
         message: done ? `Completed “${occ.task.title}”` : `Marked “${occ.task.title}” as not done`,
+        actionLabel: 'Undo',
+        onAction: () => void undo(),
+      })
+    })
+
+  const setStatus = (occ: Occurrence, status: Status) =>
+    guard(async () => {
+      const undo = await store.getState().setOccurrenceStatus(occ, status)
+      pushToast({
+        message: `Moved “${occ.task.title}” to ${STATUS_LABEL[status]}`,
         actionLabel: 'Undo',
         onAction: () => void undo(),
       })
@@ -80,5 +91,5 @@ export function useTaskActions() {
       })
     })
 
-  return { guard, setDone, completeMany, move, moveMany, remove }
+  return { guard, setDone, setStatus, completeMany, move, moveMany, remove }
 }

@@ -6,7 +6,7 @@ import { isRecurring } from '@/lib/recurrence'
 import { makeTask } from '@/lib/tasks'
 import type { PaletteKey } from '@/lib/palette'
 import type { BackupData } from '@/lib/backup'
-import type { Category, ClassBlock, Occurrence, Task } from '@/types/model'
+import type { Category, ClassBlock, Occurrence, Status, Task } from '@/types/model'
 
 
 export type TaskDraft = Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'completedAt' | 'completedDates' | 'exceptions'>
@@ -26,6 +26,7 @@ interface TasksState {
   saveTask: (task: Task) => Promise<void>
   deleteTasks: (ids: string[]) => Promise<Undo>
   setOccurrenceDone: (occ: Occurrence, done: boolean) => Promise<Undo>
+  setOccurrenceStatus: (occ: Occurrence, status: Status) => Promise<Undo>
   toggleSubtask: (taskId: string, subtaskId: string) => Promise<void>
   moveOccurrence: (occ: Occurrence, toDate: string) => Promise<Undo>
   createCategory: (name: string, colorKey: PaletteKey) => Promise<Category>
@@ -113,6 +114,26 @@ export const useTasksStore = create<TasksState>()((set, get) => {
           ...before,
           status: done ? 'done' : 'not_started',
           completedAt: done ? Date.now() : null,
+        }
+      }
+      await persist([after])
+      return snapshotUndo([before])
+    },
+
+    setOccurrenceStatus: async (occ, status) => {
+      const before = find(occ.task.id)
+      let after: Task
+      if (isRecurring(before) && occ.originalDate) {
+        // Done is tracked per occurrence; "in progress" applies to the whole series.
+        const dates = new Set(before.completedDates)
+        if (status === 'done') dates.add(occ.originalDate)
+        else dates.delete(occ.originalDate)
+        after = { ...before, completedDates: [...dates], status: status === 'done' ? before.status : status }
+      } else {
+        after = {
+          ...before,
+          status,
+          completedAt: status !== 'done' ? null : before.status === 'done' ? before.completedAt : Date.now(),
         }
       }
       await persist([after])
