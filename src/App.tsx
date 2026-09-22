@@ -12,19 +12,15 @@ import {
   Tags,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 
 import { TaskEditor } from '@/components/task/TaskEditor'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
 import { ToastHost } from '@/components/ui/ToastHost'
-import { CalendarView } from '@/features/calendar/CalendarView'
 import { CategoryManager } from '@/features/categories/CategoryManager'
-import { InsightsView } from '@/features/insights/InsightsView'
-import { KitPage } from '@/features/kit/KitPage'
 import { ScheduleManager } from '@/features/schedule/ScheduleManager'
-import { ListView } from '@/features/list/ListView'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { Kbd, ShortcutsDialog } from '@/features/settings/ShortcutsDialog'
 import { TodayView } from '@/features/today/TodayView'
@@ -35,6 +31,26 @@ import { cx } from '@/lib/cx'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { View } from '@/store/ui'
+
+// Heavy views (drag-and-drop, charts) load on demand to keep first paint fast.
+const CalendarView = lazy(() =>
+  import('@/features/calendar/CalendarView').then((module) => ({ default: module.CalendarView })),
+)
+const ListView = lazy(() => import('@/features/list/ListView').then((module) => ({ default: module.ListView })))
+const InsightsView = lazy(() =>
+  import('@/features/insights/InsightsView').then((module) => ({ default: module.InsightsView })),
+)
+const KitPage = lazy(() => import('@/features/kit/KitPage').then((module) => ({ default: module.KitPage })))
+
+function LoadingRows() {
+  return (
+    <div role="status" aria-label="Loading" className="grid gap-3">
+      {[0, 1, 2].map((row) => (
+        <div key={row} className="h-14 animate-pulse rounded-md border border-line bg-panel" />
+      ))}
+    </div>
+  )
+}
 
 interface NavItem {
   view: View
@@ -91,13 +107,7 @@ export function App() {
 
   let body
   if (!ready) {
-    body = (
-      <div role="status" aria-label="Loading" className="grid gap-3">
-        {[0, 1, 2].map((row) => (
-          <div key={row} className="h-14 animate-pulse rounded-md border border-line bg-panel" />
-        ))}
-      </div>
-    )
+    body = <LoadingRows />
   } else if (error) {
     body = (
       <div className="rounded-lg border border-line bg-raised shadow-card">
@@ -162,7 +172,9 @@ export function App() {
             </div>
           )}
         </header>
-        <div className="mx-auto max-w-5xl">{body}</div>
+        <div className="mx-auto max-w-5xl">
+          <Suspense fallback={<LoadingRows />}>{body}</Suspense>
+        </div>
       </main>
 
       <nav

@@ -103,6 +103,11 @@ function normalizeBlock(raw: unknown): ClassBlock | null {
   }
 }
 
+/** Later rows win when an id appears twice, so a hand-edited file can't break the import. */
+function uniqueById<T extends { id: string }>(rows: T[]): T[] {
+  return [...new Map(rows.map((row) => [row.id, row])).values()]
+}
+
 export function serializeBackup(data: BackupData, now: Date = new Date()): string {
   return JSON.stringify(
     { app: 'daybook', version: 2, exportedAt: now.toISOString(), ...data },
@@ -123,13 +128,13 @@ export function parseBackup(text: string): BackupData {
     throw new Error('That file does not look like a Daybook backup.')
   }
   return {
-    tasks: raw.tasks.map(normalizeTask).filter((task): task is Task => task !== null),
-    categories: raw.categories
-      .map(normalizeCategory)
-      .filter((category): category is Category => category !== null),
+    tasks: uniqueById(raw.tasks.map(normalizeTask).filter((task): task is Task => task !== null)),
+    categories: uniqueById(
+      raw.categories.map(normalizeCategory).filter((category): category is Category => category !== null),
+    ),
     // Version 1 backups predate the class schedule.
     classBlocks: Array.isArray(raw.classBlocks)
-      ? raw.classBlocks.map(normalizeBlock).filter((block): block is ClassBlock => block !== null)
+      ? uniqueById(raw.classBlocks.map(normalizeBlock).filter((block): block is ClassBlock => block !== null))
       : [],
   }
 }

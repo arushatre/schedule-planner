@@ -59,6 +59,22 @@ describe('backup', () => {
     expect(cats[0]?.colorKey).toBe('graphite')
   })
 
+  it('collapses duplicate ids instead of failing the whole import', () => {
+    const text = JSON.stringify({
+      tasks: [
+        { id: 'a', title: 'First' },
+        { id: 'a', title: 'Second' },
+      ],
+      categories: [
+        { id: 'c', name: 'One' },
+        { id: 'c', name: 'Two' },
+      ],
+    })
+    const { tasks, categories: cats } = parseBackup(text)
+    expect(tasks.map((task) => task.title)).toEqual(['Second'])
+    expect(cats.map((category) => category.name)).toEqual(['Two'])
+  })
+
   it('accepts version 1 backups without a schedule and drops invalid blocks', () => {
     const legacy = parseBackup(JSON.stringify({ version: 1, tasks: [], categories: [] }))
     expect(legacy.classBlocks).toEqual([])
