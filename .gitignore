@@ -9,3 +9,7 @@ coverage
 !.vscode/extensions.json
 .idea
 .claude/settings.local.json
+
+# Environment (secrets). .env.example is the committed template.
+.env*
+!.env.example

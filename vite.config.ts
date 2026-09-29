@@ -7,13 +7,13 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // The service worker updates itself; tasks live in IndexedDB so an update never touches data.
+      // The service worker updates itself; the task cache lives in IndexedDB so an update never touches data.
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/apple-touch-icon.png'],
       manifest: {
         name: 'Daybook',
         short_name: 'Daybook',
-        description: 'A local-first calendar and task list. Your data stays in this browser.',
+        description: 'A calendar and task list that works offline and syncs to your account.',
         theme_color: '#2F5D62',
         background_color: '#FAF8F4',
         display: 'standalone',
