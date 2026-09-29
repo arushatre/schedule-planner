@@ -1,0 +1,1 @@
+-- Intentionally empty: default categories are seeded per user by the client on first sign-in.
