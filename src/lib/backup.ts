@@ -140,6 +140,39 @@ export function parseBackup(text: string): BackupData {
   }
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * The server keys every row by UUID. Backups and local data from before sync used short
+ * nanoid ids, so replace any non-UUID id (keeping task -> category links intact).
+ */
+export function withUuidIds(data: BackupData): BackupData {
+  const ids = new Map<string, string>()
+  const remap = (id: string): string => {
+    if (UUID.test(id)) return id
+    const existing = ids.get(id)
+    if (existing) return existing
+    const next = crypto.randomUUID()
+    ids.set(id, next)
+    return next
+  }
+  const categories = data.categories.map((category) => ({ ...category, id: remap(category.id) }))
+  const known = new Set(categories.map((category) => category.id))
+  return {
+    categories,
+    classBlocks: data.classBlocks.map((block) => ({ ...block, id: remap(block.id) })),
+    tasks: data.tasks.map((task) => {
+      const categoryId = ids.get(task.categoryId) ?? task.categoryId
+      return {
+        ...task,
+        id: remap(task.id),
+        categoryId: known.has(categoryId) ? categoryId : '',
+        subtasks: task.subtasks.map((subtask) => ({ ...subtask, id: remap(subtask.id) })),
+      }
+    }),
+  }
+}
+
 export function downloadFile(filename: string, mime: string, contents: string): void {
   const url = URL.createObjectURL(new Blob([contents], { type: mime }))
   const link = document.createElement('a')

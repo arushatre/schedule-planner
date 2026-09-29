@@ -12,7 +12,7 @@ import {
   Tags,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy } from 'react'
 
 import { TaskEditor } from '@/components/task/TaskEditor'
 import { Button } from '@/components/ui/Button'
@@ -93,11 +93,6 @@ export function App() {
   const openDialog = useUiStore((state) => state.openDialog)
   const ready = useTasksStore((state) => state.ready)
   const error = useTasksStore((state) => state.error)
-  const init = useTasksStore((state) => state.init)
-
-  useEffect(() => {
-    void init()
-  }, [init])
 
   useShortcuts()
   useTheme()
@@ -114,7 +109,7 @@ export function App() {
         <EmptyState
           icon={DatabaseZap}
           title="Can’t open local storage"
-          description={`Daybook keeps your tasks in this browser’s IndexedDB, and it isn’t available (${error}). Private windows and some strict privacy settings block it. Try a regular window.`}
+          description={`Daybook caches your tasks in this browser’s IndexedDB so it works offline, and it isn’t available (${error}). Private windows and some strict privacy settings block it. Try a regular window.`}
         />
       </div>
     )
