@@ -8,6 +8,10 @@ interface MetaRow {
   value: string
 }
 
+/**
+ * The pre-accounts local database. Signed-in data lives in the per-user cache (src/sync/cache.ts);
+ * this schema is kept only so ImportLocalDialog can read and offer to import old tasks.
+ */
 export class DaybookDb extends Dexie {
   tasks!: EntityTable<Task, 'id'>
   categories!: EntityTable<Category, 'id'>
@@ -39,5 +43,3 @@ export class DaybookDb extends Dexie {
     )
   }
 }
-
-export const db = new DaybookDb()

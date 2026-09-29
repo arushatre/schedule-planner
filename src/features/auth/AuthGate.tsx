@@ -7,6 +7,7 @@ import { ToastHost } from '@/components/ui/ToastHost'
 import { supabaseConfigError } from '@/lib/supabase'
 import { SyncProvider } from '@/sync/SyncProvider'
 import { AuthScreen } from './AuthScreen'
+import { ImportLocalDialog } from './ImportLocalDialog'
 import { ResetPassword } from './ResetPassword'
 
 function Splash() {
@@ -37,6 +38,7 @@ export function AuthGate() {
     return (
       <SyncProvider key={user.id} userId={user.id}>
         <App />
+        <ImportLocalDialog />
       </SyncProvider>
     )
   }

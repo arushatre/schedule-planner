@@ -1,20 +1,26 @@
-import { CalendarArrowDown, Download, Upload } from 'lucide-react'
+import { CalendarArrowDown, CircleAlert, CloudCheck, CloudOff, Download, LogOut, RefreshCw, Upload } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { format } from 'date-fns'
 import { useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
+import { useSession } from '@/auth/useSession'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Dialog } from '@/components/ui/Dialog'
+import { Icon } from '@/components/ui/Icon'
 import { Segmented } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { downloadFile, parseBackup, serializeBackup } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
+import { cx } from '@/lib/cx'
 import { buildIcs } from '@/lib/ics'
 import { notificationSupport, requestNotificationPermission } from '@/lib/notifications'
 import type { NotificationSupport } from '@/lib/notifications'
 import { THEME_LABEL } from '@/lib/theme'
 import type { ThemePreference } from '@/lib/theme'
+import { useSyncStatus } from '@/store/sync'
+import type { SyncStatus } from '@/sync/engine'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 
@@ -47,9 +53,91 @@ function RemindersSection() {
       />
       <p className="text-sm text-fg-muted">{PERMISSION_COPY[support]}</p>
       <p className="text-sm text-fg-subtle">
-        Reminders fire while Daybook is open in a tab or installed as an app. Your data never leaves this
-        device, so nothing can wake it up while it’s closed.
+        Reminders fire while Daybook is open in a tab or installed as an app. They’re scheduled in this
+        browser, so nothing can wake it up while it’s closed.
       </p>
+    </section>
+  )
+}
+
+const changes = (count: number) => `${count} change${count === 1 ? '' : 's'}`
+
+function syncSummary(status: SyncStatus): { icon: LucideIcon; text: string; tone: 'ok' | 'muted' | 'error'; spin?: boolean } {
+  if (status.state === 'offline') {
+    return {
+      icon: CloudOff,
+      tone: 'muted',
+      text: status.pending
+        ? `Offline. ${changes(status.pending)} will sync when you reconnect.`
+        : 'Offline. Keep working; changes sync when you reconnect.',
+    }
+  }
+  if (status.state === 'syncing') return { icon: RefreshCw, tone: 'muted', text: 'Syncing…', spin: true }
+  if (status.state === 'error') {
+    return { icon: CircleAlert, tone: 'error', text: `Couldn’t reach the server (${status.lastError ?? 'unknown error'}). Retrying automatically.` }
+  }
+  if (status.pending) return { icon: RefreshCw, tone: 'muted', text: `${changes(status.pending)} waiting to sync.` }
+  return {
+    icon: CloudCheck,
+    tone: 'ok',
+    text: status.lastPulledAt ? `All changes synced · checked ${format(status.lastPulledAt, 'p')}` : 'All changes synced',
+  }
+}
+
+function AccountSection({ onSignOut }: { onSignOut: () => void }) {
+  const { user, signOut } = useSession()
+  const status = useSyncStatus()
+  const syncNow = useTasksStore((state) => state.syncNow)
+  const [signingOut, setSigningOut] = useState(false)
+  const summary = syncSummary(status)
+
+  return (
+    <section className="grid gap-2">
+      <h3 className="text-base font-medium">Account</h3>
+      <p className="text-sm text-fg-muted">
+        Signed in as <span className="font-medium text-fg">{user?.email}</span>
+      </p>
+      <div
+        role="status"
+        className={cx(
+          'flex items-center gap-2 rounded-md border px-3 py-2 text-sm',
+          summary.tone === 'error' ? 'border-overdue/30 bg-overdue-soft' : 'border-line bg-panel',
+        )}
+      >
+        <Icon
+          icon={summary.icon}
+          size={16}
+          className={cx(
+            'shrink-0',
+            summary.spin && 'animate-spin',
+            summary.tone === 'ok' ? 'text-accent' : summary.tone === 'error' ? 'text-overdue' : 'text-fg-muted',
+          )}
+        />
+        <span className="min-w-0 flex-1">{summary.text}</span>
+        {(status.state === 'error' || status.pending > 0) && status.state !== 'offline' && (
+          <Button size="sm" variant="ghost" onClick={() => void syncNow()}>
+            Retry now
+          </Button>
+        )}
+      </div>
+      {status.pending > 0 && (
+        <p className="text-sm text-fg-subtle">
+          If you sign out now, unsynced changes stay on this device and sync the next time you sign in here.
+        </p>
+      )}
+      <div>
+        <Button
+          icon={LogOut}
+          disabled={signingOut}
+          onClick={() => {
+            setSigningOut(true)
+            onSignOut()
+            void signOut()
+          }}
+        >
+          {signingOut ? 'Signing out…' : 'Sign out'}
+        </Button>
+      </div>
     </section>
   )
 }
@@ -103,7 +191,9 @@ export function SettingsDialog() {
   return (
     <Dialog open={open} onClose={close} title="Settings">
       <div className="grid gap-5">
-        <section className="grid gap-2">
+        <AccountSection onSignOut={close} />
+
+        <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Appearance</h3>
           <p className="text-sm text-fg-muted">
             “System” follows your device and switches automatically between light and dark.
@@ -125,8 +215,8 @@ export function SettingsDialog() {
         <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Export</h3>
           <p className="text-sm text-fg-muted">
-            Everything lives in this browser. Download a backup to keep it safe or move it to another
-            device.
+            Your tasks sync to your account. Download a backup for your own records, or export a calendar
+            file.
           </p>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -157,7 +247,9 @@ export function SettingsDialog() {
 
         <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Import</h3>
-          <p className="text-sm text-fg-muted">Restore from a backup file. This replaces your current data.</p>
+          <p className="text-sm text-fg-muted">
+            Restore from a backup file. This replaces your current data on every device signed in to this account.
+          </p>
           <input
             ref={fileInput}
             type="file"

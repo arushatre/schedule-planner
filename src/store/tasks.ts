@@ -6,6 +6,7 @@ import { isRecurring } from '@/lib/recurrence'
 import { makeTask } from '@/lib/tasks'
 import type { PaletteKey } from '@/lib/palette'
 import type { Patch, SyncEngine } from '@/sync/engine'
+import { LEGACY_ANSWERED_KEY, markLegacyImported, planLegacyImport, readLegacyData, useLegacyImport } from '@/sync/legacy'
 import type { Category, ClassBlock, Occurrence, Status, Task } from '@/types/model'
 
 export type TaskDraft = Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'completedAt' | 'completedDates' | 'exceptions'>
@@ -35,6 +36,12 @@ interface TasksState {
   applyPatch: (patch: Patch) => void
   /** Creates School / Personal / Work for a brand-new account (after the first successful pull). */
   seedIfEmpty: () => Promise<void>
+  /** Offers pre-accounts local data to an account that has no tasks yet (once per account). */
+  offerLocalImport: () => Promise<void>
+  /** Answers the offer: merges the data into the account, or declines with null. */
+  answerLocalImport: (userId: string, data: BackupData | null) => Promise<void>
+  /** Pushes queued writes and pulls the latest server state now. */
+  syncNow: () => Promise<void>
 
   createTask: (draft: TaskDraft) => Promise<Task>
   saveTask: (task: Task) => Promise<void>
@@ -151,6 +158,28 @@ export const useTasksStore = create<TasksState>()((set, get) => {
         })),
       )
     },
+
+    offerLocalImport: async () => {
+      const current = sync()
+      if (get().tasks.length > 0 || (await current.cache.getMeta(LEGACY_ANSWERED_KEY))) return
+      const data = await readLegacyData().catch(() => null)
+      if (data && engine === current) useLegacyImport.setState({ offer: data })
+    },
+
+    answerLocalImport: async (userId, data) => {
+      const current = sync()
+      useLegacyImport.setState({ offer: null })
+      await current.cache.setMeta(LEGACY_ANSWERED_KEY, data ? 'imported' : 'declined')
+      if (!data) return
+      const plan = planLegacyImport(data, get().categories)
+      // Categories first: the outbox is ordered, and tasks reference them.
+      await saveCategories(plan.categories)
+      await saveClassBlocks(plan.classBlocks)
+      await persist(plan.tasks)
+      await markLegacyImported(userId)
+    },
+
+    syncNow: () => sync().sync(),
 
     createTask: async (draft) => {
       const task = makeTask(draft)

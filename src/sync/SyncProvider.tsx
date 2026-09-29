@@ -39,11 +39,17 @@ export function SyncProvider({ userId, children, remote }: SyncProviderProps) {
     void useTasksStore
       .getState()
       .attach(engine)
-      .then(async () => {
-        if (!active) return
-        await engine.start()
-        if (active) await useTasksStore.getState().seedIfEmpty()
+      .then(() => {
+        if (active) void engine.start()
       })
+
+    // After the first successful pull (possibly long after an offline boot), the account's real
+    // state is known: seed defaults for brand-new accounts, then offer any pre-accounts local data.
+    const unsubscribePull = useSyncStore.subscribe((status, previous) => {
+      if (!active || !status.lastPulledAt || previous.lastPulledAt) return
+      const store = useTasksStore.getState()
+      void store.seedIfEmpty().then(() => (active ? store.offerLocalImport() : undefined))
+    })
 
     // Auth refreshes (and sign-ins in other tabs) are a good moment to push anything queued.
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -52,10 +58,11 @@ export function SyncProvider({ userId, children, remote }: SyncProviderProps) {
 
     return () => {
       active = false
+      unsubscribePull()
       data.subscription.unsubscribe()
       engine.stop()
       useTasksStore.getState().detach()
-      useSyncStore.setState({ state: 'idle', pending: 0, lastError: null })
+      useSyncStore.setState({ state: 'idle', pending: 0, lastError: null, lastPulledAt: null })
       cache.close()
     }
   }, [userId, remote])

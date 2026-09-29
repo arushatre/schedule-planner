@@ -11,6 +11,8 @@ export interface SyncStatus {
   /** Writes waiting to reach the server. */
   pending: number
   lastError: string | null
+  /** When this session last reconciled with the server; null until the first successful pull. */
+  lastPulledAt: number | null
 }
 
 export interface EntityPatch<T> {
@@ -85,7 +87,7 @@ export class SyncEngine {
   private readonly options: SyncEngineOptions
   readonly cache: CacheDb
   private readonly remote: Remote
-  private status: SyncStatus = { state: 'idle', pending: 0, lastError: null }
+  private status: SyncStatus = { state: 'idle', pending: 0, lastError: null, lastPulledAt: null }
   private flushing: Promise<void> | null = null
   private flushAgain = false
   private retryTimer: ReturnType<typeof setTimeout> | null = null
@@ -349,9 +351,10 @@ export class SyncEngine {
         addToPatch(patch, entity, put, remove)
       }
     })
-    await this.cache.setMeta('pulledAt', String(Date.now()))
+    const pulledAt = Date.now()
+    await this.cache.setMeta('pulledAt', String(pulledAt))
     if (!isEmpty(patch)) this.options.onPatch(patch)
-    if (this.status.state !== 'syncing') this.setStatus({ state: 'idle', lastError: null })
+    this.setStatus(this.status.state === 'syncing' ? { lastPulledAt: pulledAt } : { state: 'idle', lastError: null, lastPulledAt: pulledAt })
     return true
   }
 
