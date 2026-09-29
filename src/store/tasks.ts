@@ -111,8 +111,11 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       engine = next
       try {
         const { tasks, categories, classBlocks } = await next.load()
+        // A newer engine may have replaced this one mid-load (StrictMode remount, account switch).
+        if (engine !== next) return
         set({ tasks, categories: [...categories].sort(byOrder), classBlocks, ready: true, error: null })
       } catch (error) {
+        if (engine !== next) return
         set({
           ready: true,
           error: error instanceof Error ? error.message : 'Could not open local storage.',

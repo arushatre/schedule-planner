@@ -5,7 +5,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 
-import { App } from './App'
+import { AuthProvider } from './auth/AuthProvider'
+import { AuthGate } from './features/auth/AuthGate'
 import './styles/index.css'
 
 // Offline support: the service worker only registers in production builds.
@@ -17,7 +18,9 @@ if (!root) throw new Error('Root element #root not found')
 createRoot(root).render(
   <StrictMode>
     <MotionConfig reducedMotion="user">
-      <App />
+      <AuthProvider>
+        <AuthGate />
+      </AuthProvider>
     </MotionConfig>
   </StrictMode>,
 )
