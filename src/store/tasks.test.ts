@@ -106,8 +106,8 @@ describe('tasks store + Dexie', () => {
 
     await undo()
     expect(useTasksStore.getState().tasks[0]).toMatchObject({ status: 'in_progress', completedAt: null })
-    await store.setOccurrenceStatus(occ, 'not_started')
-    expect((await db.tasks.get(task.id))?.status).toBe('not_started')
+    await store.setOccurrenceStatus(occ, 'todo')
+    expect((await db.tasks.get(task.id))?.status).toBe('todo')
   })
 
   it('board "done" on a recurring task completes only that occurrence', async () => {
@@ -121,8 +121,8 @@ describe('tasks store + Dexie', () => {
     await store.setOccurrenceStatus(first, 'done')
     const stored = useTasksStore.getState().tasks[0]
     expect(stored?.completedDates).toEqual(['2026-09-21'])
-    expect(stored?.status).toBe('not_started')
-    await store.setOccurrenceStatus({ ...first, done: true }, 'not_started')
+    expect(stored?.status).toBe('todo')
+    await store.setOccurrenceStatus({ ...first, done: true }, 'todo')
     expect(useTasksStore.getState().tasks[0]?.completedDates).toEqual([])
   })
 

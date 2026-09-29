@@ -230,11 +230,11 @@ export function parseQuickAdd(input: string, context: Context): ParsedQuickAdd {
     else if (!result.tags.includes(name)) result.tags.push(name)
   }
 
-  const priority = text.find(/(?:^|\s)!(high|medium|med|low)(?![a-z])/i)
+  const priority = text.find(/(?:^|\s)!(urgent|high|medium|med|low)(?![a-z])/i)
   if (priority) {
     text.cut(priority)
     const word = (priority[1] ?? '').toLowerCase()
-    result.priority = word === 'high' ? 'high' : word === 'low' ? 'low' : 'medium'
+    result.priority = word === 'urgent' || word === 'high' || word === 'low' ? word : 'medium'
   }
 
   const repeat = parseRecurrence(text)

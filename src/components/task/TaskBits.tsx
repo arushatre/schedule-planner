@@ -1,4 +1,4 @@
-import { SignalHigh, SignalLow, SignalMedium } from 'lucide-react'
+import { Signal, SignalHigh, SignalLow, SignalMedium } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 import { Icon } from '@/components/ui/Icon'
@@ -16,13 +16,17 @@ const PRIORITY_ICON: Record<Priority, LucideIcon> = {
   low: SignalLow,
   medium: SignalMedium,
   high: SignalHigh,
+  urgent: Signal,
 }
 
 export function PriorityMark({ priority }: { priority: Priority }) {
   return (
     <span
       title={`${PRIORITY_LABEL[priority]} priority`}
-      className={cx('shrink-0', priority === 'high' ? 'text-fg' : 'text-fg-subtle')}
+      className={cx(
+        'shrink-0',
+        priority === 'urgent' ? 'text-overdue' : priority === 'high' ? 'text-fg' : 'text-fg-subtle',
+      )}
     >
       <Icon icon={PRIORITY_ICON[priority]} size={16} />
       <span className="sr-only">{PRIORITY_LABEL[priority]} priority</span>

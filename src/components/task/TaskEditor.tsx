@@ -1,5 +1,4 @@
 import { Plus, Trash2, X } from 'lucide-react'
-import { nanoid } from 'nanoid'
 import { useMemo, useState } from 'react'
 
 import { Button } from '@/components/ui/Button'
@@ -59,7 +58,7 @@ function initialState(task: Task | null, defaults: { dueDate: string | null; cat
     categoryId: task?.categoryId ?? defaults.categoryId,
     tags: task?.tags ?? [],
     priority: task?.priority ?? 'medium',
-    status: task?.status ?? 'not_started',
+    status: task?.status ?? 'todo',
     subtasks: task?.subtasks ?? [],
     recurrence: task?.recurrence ?? { kind: 'none', weekdays: [], until: null },
     reminderTime: task?.reminderTime ?? '',
@@ -101,7 +100,7 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
   const addSubtask = () => {
     const title = subtaskDraft.trim()
     if (!title) return
-    patch({ subtasks: [...form.subtasks, { id: nanoid(8), title, done: false }] })
+    patch({ subtasks: [...form.subtasks, { id: crypto.randomUUID(), title, done: false }] })
     setSubtaskDraft('')
   }
 
@@ -133,7 +132,7 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
       tags: form.tags,
       priority: form.priority,
       // Recurring tasks track completion per occurrence, not via status.
-      status: recurring ? 'not_started' : form.status,
+      status: recurring ? 'todo' : form.status,
       subtasks: form.subtasks,
       recurrence: { ...form.recurrence, until: recurring ? form.recurrence.until : null },
       reminderTime: form.dueDate && form.reminderTime ? form.reminderTime : null,

@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { nanoid } from 'nanoid'
 
 import * as repo from '@/db/repo'
 import { isRecurring } from '@/lib/recurrence'
@@ -112,7 +111,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
       } else {
         after = {
           ...before,
-          status: done ? 'done' : 'not_started',
+          status: done ? 'done' : 'todo',
           completedAt: done ? Date.now() : null,
         }
       }
@@ -170,7 +169,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     createCategory: async (name, colorKey) => {
       const { categories } = get()
       const category: Category = {
-        id: nanoid(10),
+        id: crypto.randomUUID(),
         name: name.trim(),
         colorKey,
         archived: false,

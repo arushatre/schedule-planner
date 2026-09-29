@@ -30,7 +30,7 @@ export type GroupKey = 'none' | 'date' | 'category' | 'priority'
 
 export function occurrenceStatus(occ: Occurrence): Status {
   if (occ.done) return 'done'
-  return occ.task.status === 'done' ? 'not_started' : occ.task.status
+  return occ.task.status === 'done' ? 'todo' : occ.task.status
 }
 
 /** Number of active filter dimensions (search counts as one). */
@@ -70,7 +70,7 @@ export function applyFilters(occurrences: Occurrence[], filters: Filters): Occur
   })
 }
 
-const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 }
+const PRIORITY_RANK: Record<Priority, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
 
 export function sortOccurrences(occurrences: Occurrence[], sort: SortKey): Occurrence[] {
   const copy = [...occurrences]

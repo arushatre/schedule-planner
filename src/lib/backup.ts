@@ -51,7 +51,8 @@ function normalizeTask(raw: unknown): Task | null {
     categoryId: asString(raw.categoryId),
     tags: stringList(raw.tags),
     priority: oneOf<Priority>(PRIORITIES, raw.priority, 'medium'),
-    status: oneOf<Status>(STATUSES, raw.status, 'not_started'),
+    // Backups made before the Supabase migration used 'not_started'.
+    status: oneOf<Status>(STATUSES, raw.status === 'not_started' ? 'todo' : raw.status, 'todo'),
     subtasks: Array.isArray(raw.subtasks)
       ? raw.subtasks.map(normalizeSubtask).filter((sub): sub is Subtask => sub !== null)
       : [],

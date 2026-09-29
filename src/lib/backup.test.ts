@@ -46,7 +46,7 @@ describe('backup', () => {
   it('drops malformed rows and repairs bad field values instead of crashing', () => {
     const text = JSON.stringify({
       tasks: [
-        { id: 'a', title: '  Ok  ', priority: 'urgent', dueDate: 'tomorrow', tags: ['x', 5] },
+        { id: 'a', title: '  Ok  ', priority: 'critical', dueDate: 'tomorrow', tags: ['x', 5] },
         { id: 'b', title: '' },
         'garbage',
       ],
@@ -87,6 +87,20 @@ describe('backup', () => {
     )
     expect(withBad.classBlocks).toHaveLength(1)
     expect(withBad.classBlocks[0]?.weekdays).toEqual([2])
+  })
+
+  it("maps the legacy 'not_started' status to 'todo' and keeps 'urgent' priority", () => {
+    const parsed = parseBackup(
+      JSON.stringify({
+        tasks: [
+          { id: 't1', title: 'Old', status: 'not_started' },
+          { id: 't2', title: 'Hot', priority: 'urgent', status: 'in_progress' },
+        ],
+        categories: [],
+      }),
+    )
+    expect(parsed.tasks.map((task) => task.status)).toEqual(['todo', 'in_progress'])
+    expect(parsed.tasks[1]?.priority).toBe('urgent')
   })
 })
 

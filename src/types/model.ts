@@ -1,9 +1,9 @@
 import type { PaletteKey } from '@/lib/palette'
 
-export const PRIORITIES = ['low', 'medium', 'high'] as const
+export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
 export type Priority = (typeof PRIORITIES)[number]
 
-export const STATUSES = ['not_started', 'in_progress', 'done'] as const
+export const STATUSES = ['todo', 'in_progress', 'done'] as const
 export type Status = (typeof STATUSES)[number]
 
 export const RECURRENCE_KINDS = ['none', 'daily', 'weekly', 'weekdays', 'monthly'] as const
@@ -13,10 +13,11 @@ export const PRIORITY_LABEL: Record<Priority, string> = {
   low: 'Low',
   medium: 'Medium',
   high: 'High',
+  urgent: 'Urgent',
 }
 
 export const STATUS_LABEL: Record<Status, string> = {
-  not_started: 'Not started',
+  todo: 'To do',
   in_progress: 'In progress',
   done: 'Done',
 }

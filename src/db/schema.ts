@@ -28,6 +28,15 @@ export class DaybookDb extends Dexie {
       meta: 'key',
       classBlocks: 'id',
     })
+    // v3 renames the 'not_started' status to 'todo' to match the backend enum.
+    this.version(3).upgrade((tx) =>
+      tx
+        .table<Task, string>('tasks')
+        .toCollection()
+        .modify((task) => {
+          if ((task.status as string) === 'not_started') task.status = 'todo'
+        }),
+    )
   }
 }
 

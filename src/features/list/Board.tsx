@@ -144,7 +144,7 @@ export function Board({ occurrences }: { occurrences: Occurrence[] }) {
   const [dragging, setDragging] = useState<Occurrence | null>(null)
 
   const columns = useMemo(() => {
-    const byStatus: Record<Status, Occurrence[]> = { not_started: [], in_progress: [], done: [] }
+    const byStatus: Record<Status, Occurrence[]> = { todo: [], in_progress: [], done: [] }
     for (const occ of occurrences) byStatus[occurrenceStatus(occ)].push(occ)
     // Newest completions first in Done, so the cap keeps the recent ones.
     byStatus.done.sort((a, b) => (b.task.completedAt ?? b.task.updatedAt) - (a.task.completedAt ?? a.task.updatedAt))

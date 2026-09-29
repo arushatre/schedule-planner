@@ -1,5 +1,3 @@
-import { nanoid } from 'nanoid'
-
 import type { Category, ClassBlock, Task } from '@/types/model'
 import { db } from './schema'
 
@@ -18,7 +16,7 @@ export async function ensureSeed(): Promise<void> {
     const now = Date.now()
     await db.categories.bulkAdd(
       SEED_CATEGORIES.map((seed, order) => ({
-        id: nanoid(10),
+        id: crypto.randomUUID(),
         archived: false,
         order,
         createdAt: now,

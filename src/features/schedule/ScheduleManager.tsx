@@ -1,5 +1,4 @@
 import { GraduationCap, Pencil, Plus, Trash2 } from 'lucide-react'
-import { nanoid } from 'nanoid'
 import { useState } from 'react'
 
 import { Swatches } from '@/components/task/Swatches'
@@ -68,7 +67,7 @@ function BlockForm({ initial, onDone }: { initial: Draft; onDone: () => void }) 
 
     void guard(async () => {
       await saveClassBlock({
-        id: draft.id ?? nanoid(10),
+        id: draft.id ?? crypto.randomUUID(),
         title: draft.title.trim(),
         location: draft.location.trim(),
         weekdays: draft.weekdays,

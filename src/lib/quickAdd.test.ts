@@ -124,6 +124,7 @@ describe('parseQuickAdd', () => {
     })
 
     it('reads !priority', () => {
+      expect(parse('Task !urgent').priority).toBe('urgent')
       expect(parse('Task !high').priority).toBe('high')
       expect(parse('Task !med').priority).toBe('medium')
       expect(parse('Task !low').priority).toBe('low')

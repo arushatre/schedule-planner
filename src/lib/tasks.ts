@@ -1,17 +1,15 @@
-import { nanoid } from 'nanoid'
-
 import type { Category, Task } from '@/types/model'
 
 export function makeTask(overrides: Partial<Task> & Pick<Task, 'title' | 'categoryId'>): Task {
   const now = Date.now()
   return {
-    id: nanoid(10),
+    id: crypto.randomUUID(),
     notes: '',
     dueDate: null,
     dueTime: null,
     tags: [],
     priority: 'medium',
-    status: 'not_started',
+    status: 'todo',
     subtasks: [],
     recurrence: { kind: 'none', weekdays: [], until: null },
     completedDates: [],
