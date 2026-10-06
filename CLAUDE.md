@@ -69,7 +69,7 @@ Build the calendar grid custom rather than pulling in a full calendar library �
 ## Core Features (Required)
 
 ### Task model
-Title (required), notes, due date, optional due time, one category, zero-or-more tags, priority (low/medium/high), status (not started/in progress/done), subtasks with their own checkboxes and a progress indicator on the parent, recurrence (none/daily/weekly/custom weekday pattern/monthly), optional reminder time.
+Title (required), notes, due date, optional due time, one category, zero-or-more tags, priority (low/medium/high/urgent), status (to do/in progress/done), subtasks with their own checkboxes and a progress indicator on the parent, recurrence (none/daily/weekly/custom weekday pattern/monthly), optional reminder time.
 
 ### Calendar view
 Month, Week, Day, and Agenda sub-views. Tasks render as color-coded chips on their due date (color = category color). Click a date to see/quick-add tasks for that day. Drag a chip to reschedule. Clear "today" marker. Overdue tasks get a deliberate, distinct treatment — not just red text. Days with many tasks overflow gracefully ("+3 more," expandable).
@@ -113,4 +113,55 @@ The most common failure mode for AI-built UIs is looking generic and "vibe-coded
 - Flat, plain, single-tone backgrounds with no depth
 - Mixed icon styles, or emoji used as primary UI icons
 - Default unstyled browser form controls (checkboxes, selects)
-- Bouncy or exaggerated animation — motion should be 150–250ms,
+- Bouncy or exaggerated animation — motion should be 150–250ms, purposeful, and easy to ignore
+- Placeholder-looking empty/loading/error states
+
+**Always:**
+- Restrained base palette: near-white/warm-gray in light mode, deep charcoal (not pure black) in dark mode, with exactly **one** accent color reserved for primary actions
+- A curated set of 6–8 muted, desaturated category colors that visually sit together (dusty blue, sage, terracotta, mauve — not primary-school red/blue/yellow)
+- A real type scale (4–5 sizes) with weight/size used deliberately for hierarchy
+- A consistent 4px or 8px spacing grid throughout
+- Subtle, considered affordances (e.g., a checkbox with a small check-draw animation, a button darkening slightly on press)
+- Generous whitespace — this is a calm daily tool, not a dense dashboard
+- A crisp, aligned calendar grid — this is the first thing that will be judged
+
+If using shadcn/ui or Radix, treat them only as an accessible behavioral base and fully restyle them — never ship default shadcn styling as-is.
+
+---
+
+## Data Model
+
+See **Data Model** at the top of this file. The canonical client types live in `src/types/model.ts` and mirror the Postgres enums.
+
+---
+
+## Correctness Requirements
+
+- **Single source of truth**: completing a task in the list and on the calendar must update the same record — no divergent state
+- **Recurrence generation must be idempotent**: regenerating upcoming instances must never duplicate or drop them; completing one instance must not affect others
+- **Calendar month grid** must correctly include leading/trailing days from adjacent months and handle leap years
+- **Local-time consistency**: a task due "today" must never silently shift a day due to UTC conversion bugs
+- **Filter + search + sort must compose correctly** — one must never silently reset another
+- **No data loss** on refresh, tab close, or browser restart — verify this explicitly before committing the persistence layer
+- **Deletion is a distinct, confirmed or undoable action** — never a single accidental click
+
+---
+
+## Code Style
+
+- TypeScript strict mode, no `any` unless truly unavoidable
+- Componentized — no single file over ~300 lines; split by responsibility
+- Prefer small, composable components over prop-drilling-heavy mega-components
+- Co-locate a component's styles/logic/tests where practical
+
+---
+
+## Deliverables
+
+1. Working app runnable via `npm install && npm run dev`
+2. Clean, typed, componentized code
+3. A short `README.md` covering setup and the data model
+4. Seeded example data on first run, plus a clear "clear all data" option
+5. Responsive layout — this will be used on both laptop and phone
+
+Build this as something going into daily use tomorrow: polish the parts touched constantly (checking off a task, glancing at today's list, viewing the week) more than the parts touched rarely (settings, import/export).
