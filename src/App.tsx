@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import {
   CalendarCheck,
   CalendarDays,
@@ -22,6 +21,7 @@ import { ToastHost } from '@/components/ui/ToastHost'
 import { CategoryManager } from '@/features/categories/CategoryManager'
 import { ScheduleManager } from '@/features/schedule/ScheduleManager'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
+import { useGoogleAutoSync } from '@/features/settings/CalendarSync'
 import { Kbd, ShortcutsDialog } from '@/features/settings/ShortcutsDialog'
 import { TodayView } from '@/features/today/TodayView'
 import { useReminders } from '@/hooks/useReminders'
@@ -63,7 +63,7 @@ const NAV: NavItem[] = [
   { view: 'list', label: 'List', icon: ListChecks },
   { view: 'calendar', label: 'Calendar', icon: CalendarDays },
   { view: 'insights', label: 'Insights', icon: ChartColumn },
-  ...(import.meta.env.DEV ? [{ view: 'kit' as const, label: 'UI kit', icon: SwatchBook }] : []),
+  { view: 'kit', label: 'Customize', icon: SwatchBook },
 ]
 
 function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean; onSelect: () => void }) {
@@ -76,7 +76,7 @@ function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean;
         'flex items-center gap-3 rounded-md border px-3 py-2 text-base transition-colors',
         'max-md:flex-1 max-md:flex-col max-md:gap-1 max-md:text-xs',
         active
-          ? 'border-accent/25 bg-accent-soft text-accent'
+          ? 'border-transparent bg-sunken font-medium text-fg'
           : 'border-transparent text-fg-muted hover:bg-sunken hover:text-fg',
       )}
     >
@@ -97,6 +97,7 @@ export function App() {
   useShortcuts()
   useTheme()
   useReminders()
+  useGoogleAutoSync()
 
   const current = NAV.find((item) => item.view === view) ?? NAV[0]
 
@@ -121,7 +122,7 @@ export function App() {
     body = <CalendarView />
   } else if (view === 'insights') {
     body = <InsightsView />
-  } else if (import.meta.env.DEV) {
+  } else {
     body = <KitPage />
   }
 
@@ -146,10 +147,7 @@ export function App() {
 
       <main className="min-w-0 flex-1 px-4 pb-28 pt-6 md:px-10 md:pb-10 md:pt-10">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-sm text-fg-muted">{format(new Date(), 'EEEE, MMMM d')}</p>
-            <h1 className="font-display text-xl">{current?.label}</h1>
-          </div>
+          <h1 className="font-display text-xl">{current?.label}</h1>
           {ready && !error && view !== 'kit' && (
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" icon={Tags} onClick={() => openDialog('categories')}>

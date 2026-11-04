@@ -4,6 +4,8 @@ import { EMPTY_FILTERS } from '@/lib/filters'
 import type { Filters, GroupKey, SortKey } from '@/lib/filters'
 import { todayStr } from '@/lib/dates'
 import { readStored, writeStored } from '@/lib/persist'
+import { parseAppearance } from '@/lib/appearance'
+import type { Appearance } from '@/lib/appearance'
 import { THEME_KEY, isThemePreference } from '@/lib/theme'
 import type { ThemePreference } from '@/lib/theme'
 
@@ -30,9 +32,13 @@ let toastId = 0
 interface UiState {
   remindersEnabled: boolean
   setRemindersEnabled: (enabled: boolean) => void
+  briefingEnabled: boolean
+  setBriefingEnabled: (enabled: boolean) => void
 
   theme: ThemePreference
   setTheme: (theme: ThemePreference) => void
+  appearance: Appearance
+  setAppearance: (patch: Partial<Appearance>) => void
 
   view: View
   setView: (view: View) => void
@@ -79,6 +85,7 @@ interface UiState {
 }
 
 const storedTheme = readStored(THEME_KEY)
+const APPEARANCE_KEY = 'daybook:appearance'
 
 export const useUiStore = create<UiState>()((set, get) => ({
   remindersEnabled: readStored('daybook:reminders') === 'true',
@@ -86,11 +93,22 @@ export const useUiStore = create<UiState>()((set, get) => ({
     writeStored('daybook:reminders', String(remindersEnabled))
     set({ remindersEnabled })
   },
+  briefingEnabled: readStored('daybook:briefing') !== 'false',
+  setBriefingEnabled: (briefingEnabled) => {
+    writeStored('daybook:briefing', String(briefingEnabled))
+    set({ briefingEnabled })
+  },
 
   theme: isThemePreference(storedTheme) ? storedTheme : 'system',
   setTheme: (theme) => {
     writeStored(THEME_KEY, theme)
     set({ theme })
+  },
+  appearance: parseAppearance(readStored(APPEARANCE_KEY)),
+  setAppearance: (patch) => {
+    const appearance = { ...get().appearance, ...patch }
+    writeStored(APPEARANCE_KEY, JSON.stringify(appearance))
+    set({ appearance })
   },
 
   view: 'today',
