@@ -1,3 +1,4 @@
+import { differenceInCalendarDays } from 'date-fns'
 import { useRef } from 'react'
 import type { ReactNode } from 'react'
 import { Pressable, Text as RNText, View } from 'react-native'
@@ -5,9 +6,9 @@ import type { TextProps } from 'react-native'
 import Swipeable from 'react-native-gesture-handler/ReanimatedSwipeable'
 import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable'
 
-import { formatTime, friendlyDate } from '@/lib/dates'
+import { formatTime, friendlyDate, fromDateStr } from '@/lib/dates'
 import { isOverdue } from '@/lib/recurrence'
-import { categoryFor, subtaskProgress } from '@/lib/tasks'
+import { UNCATEGORIZED, categoryFor, subtaskProgress } from '@/lib/tasks'
 import { PRIORITY_LABEL } from '@/types/model'
 import type { Category, Occurrence } from '@/types/model'
 import { useTheme } from './theme'
@@ -128,10 +129,12 @@ export function TaskRow({ occ, categories, today, showDate, last, onToggle, onOp
   const { task } = occ
   const category = categoryFor(task.categoryId, categories)
   const overdue = isOverdue(occ, today)
+  const daysLate = overdue && occ.date ? differenceInCalendarDays(fromDateStr(today), fromDateStr(occ.date)) : 0
+  const tinted = category !== UNCATEGORIZED
   const flagged = task.priority === 'high' || task.priority === 'urgent'
   const progress = subtaskProgress(task)
   const meta = [
-    overdue ? 'Overdue' : null,
+    overdue ? `${daysLate}d late` : null,
     showDate && occ.date ? friendlyDate(occ.date, today) : null,
     task.dueTime ? formatTime(task.dueTime) : null,
     progress.total > 0 ? `${progress.done}/${progress.total}` : null,
@@ -156,7 +159,18 @@ export function TaskRow({ occ, categories, today, showDate, last, onToggle, onOp
       )}
       childrenContainerStyle={{ backgroundColor: theme.raised }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: last ? 0 : 1, borderColor: theme.line }}>
+      {/* A light wash of the category color; uncategorized tasks keep the plain card. Overdue gets a thin rule, not red. */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          borderBottomWidth: last ? 0 : 1,
+          borderColor: theme.line,
+          backgroundColor: tinted ? theme.category(category.colorKey, theme.tint) : undefined,
+          borderLeftWidth: overdue ? 2 : 0,
+          borderLeftColor: theme.fg,
+        }}
+      >
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: occ.done }}
@@ -171,7 +185,7 @@ export function TaskRow({ occ, categories, today, showDate, last, onToggle, onOp
               height: 24,
               borderRadius: 12,
               borderWidth: 2,
-              borderColor: occ.done ? theme.accent : overdue ? theme.overdue : theme.lineStrong,
+              borderColor: occ.done ? theme.accent : theme.lineStrong,
               backgroundColor: occ.done ? theme.accent : 'transparent',
               alignItems: 'center',
               justifyContent: 'center',
@@ -195,12 +209,11 @@ export function TaskRow({ occ, categories, today, showDate, last, onToggle, onOp
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.category(category.colorKey) }} />
-            <Text size="xs" tone={overdue ? 'overdue' : 'subtle'} numberOfLines={1} style={{ flexShrink: 1 }}>
+            <Text size="xs" tone={overdue ? 'fg' : 'subtle'} weight={overdue ? '600' : undefined} numberOfLines={1} style={{ flexShrink: 1 }}>
               {metaText}
             </Text>
           </View>
         </Pressable>
-        {overdue && <View style={{ width: 4, alignSelf: 'stretch', backgroundColor: theme.overdue }} />}
       </View>
     </Swipeable>
   )

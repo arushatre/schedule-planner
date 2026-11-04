@@ -51,8 +51,8 @@ function Shell() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.canvas }}>
-      {/* Navy header band: the phone's version of the web's navy sidebar. */}
-      <SafeAreaView edges={['top', 'left', 'right']} style={{ backgroundColor: theme.frame }}>
+      {/* Quiet header: the phone's version of the web sidebar. */}
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ backgroundColor: theme.frame, borderBottomWidth: 1, borderColor: theme.line }}>
         <View
           style={{
             flexDirection: 'row',
@@ -72,14 +72,14 @@ function Shell() {
               accessibilityLabel="New task"
               onPress={() => setEditing('new')}
               style={({ pressed }) => ({
-                backgroundColor: theme.frameFg,
+                backgroundColor: theme.accent,
                 borderRadius: theme.radius(10),
                 paddingHorizontal: 16,
                 paddingVertical: 10,
                 opacity: pressed ? 0.85 : 1,
               })}
             >
-              <Text weight="600" style={{ color: theme.frame }}>
+              <Text weight="600" tone="accentFg">
                 + New
               </Text>
             </Pressable>

@@ -1,13 +1,17 @@
 import { format } from 'date-fns'
 import { useMemo, useState } from 'react'
-import { ScrollView, TextInput, View } from 'react-native'
+import { Pressable, ScrollView, TextInput, View } from 'react-native'
+import Storage from 'expo-sqlite/kv-store'
 
-import { friendlyDate, fromDateStr, shiftDate } from '@/lib/dates'
+import { formatTime, friendlyDate, fromDateStr, shiftDate } from '@/lib/dates'
 import { compareByDue, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
 import { parseQuickAdd } from '@/lib/quickAdd'
-import { makeTask } from '@/lib/tasks'
+import { computeStats } from '@/lib/stats'
+import { categoryFor, makeTask } from '@/lib/tasks'
 import type { Occurrence } from '@/types/model'
 import { useToggleDone } from '../components/Snackbar'
+import { StreakBadge } from '../components/StreakSheet'
+import { TodaySchedule } from '../components/TodaySchedule'
 import { useRefreshControl } from '../components/useRefreshControl'
 import { WeekStrip } from '../components/WeekStrip'
 import { saveTask, useStore } from '../store'
@@ -22,6 +26,7 @@ interface Props {
 }
 
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
+const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
 
 function greeting(hour: number): string {
   if (hour < 12) return 'Good morning'
@@ -31,7 +36,8 @@ function greeting(hour: number): string {
 
 export function TodayScreen({ today, onOpen, onRefresh }: Props) {
   const theme = useTheme()
-  const { tasks, categories } = useStore()
+  const { tasks, categories, classBlocks } = useStore()
+  const [overdueOpen, setOverdueOpen] = useState(() => Storage.getItemSync(OVERDUE_OPEN_KEY) !== 'false')
   const [draft, setDraft] = useState('')
   const [selected, setSelected] = useState(today)
   const { toggle, snackbar } = useToggleDone()
@@ -45,26 +51,27 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
   }
   const isToday = selected === today
 
-  const { overdue, todays, upcoming } = useMemo(() => {
+  const { overdue, todays, dayOccs, upcoming, stats } = useMemo(() => {
     const all = listOccurrences(tasks, today)
     return {
       overdue: byDue(all.filter((occ) => isOverdue(occ, today))),
-      todays: byDue(expandOccurrences(tasks, selected, selected)),
+      todays: byDue(expandOccurrences(tasks, today, today)),
+      dayOccs: byDue(expandOccurrences(tasks, selected, selected)),
       upcoming: byDue(all.filter((occ) => occ.date !== null && occ.date > today && occ.date <= shiftDate(today, 7) && !occ.done)),
+      stats: computeStats(tasks, today),
     }
   }, [tasks, today, selected])
 
-  const left = todays.filter((occ) => !occ.done).length
-  const done = todays.length - left
-  const hello = greeting(new Date().getHours())
-  const headline = isToday
-    ? todays.length === 0
-      ? `${hello}. Nothing planned.`
-      : `${hello}. ${left} left today.`
-    : todays.length === 0
-      ? 'Nothing planned.'
-      : `${left} of ${todays.length} left.`
-  const dayTitle = isToday ? 'Today' : friendlyDate(selected, today)
+  const doneToday = todays.filter((occ) => occ.done).length
+  const nowTime = format(new Date(), 'HH:mm')
+  const open = todays.filter((occ) => !occ.done)
+  const next = open.find((occ) => occ.task.dueTime !== null && occ.task.dueTime >= nowTime) ?? open[0]
+  const nextCategory = next ? categoryFor(next.task.categoryId, categories) : null
+  const dayTitle = isToday ? 'Tasks' : friendlyDate(selected, today)
+  const toggleOverdue = () => {
+    Storage.setItemSync(OVERDUE_OPEN_KEY, String(!overdueOpen))
+    setOverdueOpen(!overdueOpen)
+  }
 
   const quickAdd = () => {
     const text = draft.trim()
@@ -108,51 +115,67 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}
       >
-        {/* The day's card: date, greeting and progress together, like the web hero. */}
-        <View
-          style={{
-            marginTop: 8,
-            padding: 18,
-            gap: 14,
-            backgroundColor: theme.raised,
-            borderWidth: 1,
-            borderColor: theme.line,
-            borderRadius: theme.radius(16),
-          }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
-            <Text size="hero" display tone="accent" style={{ lineHeight: 60 }}>
-              {format(fromDateStr(selected), 'd')}
-            </Text>
-            <View style={{ paddingBottom: 8, flex: 1 }}>
-              <Text tone="muted">{format(fromDateStr(selected), 'EEEE, MMMM')}</Text>
-              <Text size="md" display>
-                {headline}
-              </Text>
-            </View>
-          </View>
-
-          {todays.length > 0 && (
-            <View
-              style={{
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: theme.sunken,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  width: `${(done / todays.length) * 100}%`,
-                  height: '100%',
-                  backgroundColor: theme.accent,
-                }}
-              />
-            </View>
-          )}
+        <Text size="xs" tone="muted" style={{ marginTop: 4, letterSpacing: 0.6 }}>
+          {format(fromDateStr(today), 'EEEE, MMMM d').toUpperCase()}
+        </Text>
+        <Text size="xl" display accessibilityRole="header" style={{ marginTop: 4 }}>
+          {greeting(new Date().getHours())}.
+        </Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 16, rowGap: 6, marginTop: 6 }}>
+          <Text size="sm" tone="muted">
+            <Text size="sm" weight="600">{`${doneToday} of ${todays.length}`}</Text> done today
+          </Text>
+          <StreakBadge today={today} />
+          <Text size="sm" tone="muted">
+            <Text size="sm" weight="600">{stats.doneThisWeek}</Text> this week
+          </Text>
         </View>
 
         <WeekStrip key={today} today={today} selected={selected} tasks={tasks} categories={categories} onSelect={setSelected} />
+
+        {isToday && next && nextCategory && (
+          <View style={{ marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: theme.raised, borderWidth: 1, borderColor: theme.line, borderRadius: theme.radius(14) }}>
+            <Pressable accessibilityRole="button" onPress={() => onOpen(next.task.id)} style={{ flex: 1, gap: 2 }}>
+              <Text size="xs" tone="muted">{`Next up${next.task.dueTime ? ` · ${formatTime(next.task.dueTime)}` : ''}`}</Text>
+              <Text size="lg" display numberOfLines={1}>{next.task.title}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: theme.category(nextCategory.colorKey) }} />
+                <Text size="xs" tone="muted">{nextCategory.name}</Text>
+              </View>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Mark ${next.task.title} done`}
+              onPress={() => toggle(next)}
+              style={({ pressed }) => ({ borderWidth: 1, borderColor: theme.lineStrong, borderRadius: theme.radius(8), paddingHorizontal: 12, paddingVertical: 8, opacity: pressed ? 0.7 : 1 })}
+            >
+              <Text size="sm" weight="500">✓ Done</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Only shown when something is overdue; collapses, and the phone remembers that. */}
+        {isToday && overdue.length > 0 && (
+          <View style={{ marginTop: 32, gap: 8 }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: overdueOpen }}
+              accessibilityLabel={`Overdue, ${overdue.length}`}
+              onPress={toggleOverdue}
+              hitSlop={8}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            >
+              <Text size="sm" weight="600" style={{ letterSpacing: 0.6 }}>OVERDUE</Text>
+              <Text size="sm" tone="subtle">{overdue.length}</Text>
+              <Text tone="muted" style={{ marginLeft: 'auto', transform: [{ rotate: overdueOpen ? '90deg' : '0deg' }] }}>›</Text>
+            </Pressable>
+            {overdueOpen && list(overdue, true)}
+          </View>
+        )}
+
+        <Section title={isToday ? 'Today’s schedule' : `Schedule · ${friendlyDate(selected, today)}`}>
+          <TodaySchedule date={selected} today={today} occs={dayOccs} categories={categories} classBlocks={classBlocks} onOpen={onOpen} />
+        </Section>
 
         <TextInput
           value={draft}
@@ -162,7 +185,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
           placeholder={'Add a task, try "Essay fri 5pm #school"'}
           placeholderTextColor={theme.subtle}
           style={{
-            marginTop: 24,
+            marginTop: 32,
             color: theme.fg,
             fontSize: 16 * theme.textScale,
             backgroundColor: theme.raised,
@@ -174,15 +197,9 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
           }}
         />
 
-        {isToday && overdue.length > 0 && (
-          <Section title="Overdue" count={overdue.length} tone="overdue">
-            {list(overdue, true)}
-          </Section>
-        )}
-
-        <Section title={dayTitle} count={todays.length}>
-          {todays.length > 0 ? (
-            list(todays)
+        <Section title={dayTitle} count={dayOccs.length}>
+          {dayOccs.length > 0 ? (
+            list(dayOccs)
           ) : (
             <Card>
               <View style={{ padding: 32, alignItems: 'center', gap: 8 }}>

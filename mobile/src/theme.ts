@@ -28,6 +28,9 @@ const CATEGORY: Record<'light' | 'dark', Record<PaletteKey, string>> = {
   },
 }
 
+// The streak's reddish-orange fire (mirrors --ember in src/styles/index.css).
+const EMBER = { light: '196 82 44', dark: '232 124 84' }
+
 /** "r g b" (the web token format) to an RN color, with optional alpha. */
 export const rgb = (triplet: string, alpha = 1) => `rgba(${triplet.split(' ').join(', ')}, ${alpha})`
 
@@ -54,12 +57,17 @@ export function useTheme() {
     accent: c('accent'),
     accentSoft: c('accent-soft'),
     accentFg: c('accent-fg'),
+    /** Progress and the schedule's now line (bronze in Midnight & Bronze). */
+    highlight: c('highlight'),
+    ember: (alpha = 1) => rgb(EMBER[mode], alpha),
     overdue: c('overdue'),
     overdueSoft: c('overdue-soft'),
-    // The navy frame (phone header, sign-in title block); see src/lib/appearance.ts.
+    // The quiet neutral frame (phone header, sign-in title block); see src/lib/appearance.ts.
     frame: c('frame'),
     frameFg: c('frame-fg'),
-    category: (key: PaletteKey) => rgb(CATEGORY[mode][key]),
+    category: (key: PaletteKey, alpha = 1) => rgb(CATEGORY[mode][key], alpha),
+    /** How strongly task boxes are washed with their category color. */
+    tint: mode === 'dark' ? 0.15 : 0.12,
     radius: (px: number) => px * radius,
     serif: ['fraunces', 'newYork'].includes(prefs.appearance.displayFont) ? SERIF : undefined,
     textScale: { compact: 0.94, regular: 1, large: 1.1 }[prefs.appearance.textSize],
