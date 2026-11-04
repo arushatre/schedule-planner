@@ -24,10 +24,10 @@ export async function showNotification(title: string, body: string, tag: string)
     // Installed/mobile browsers need the service worker to display notifications.
     const registration = await navigator.serviceWorker?.getRegistration()
     if (registration) {
-      await registration.showNotification(title, { body, tag, icon: '/icons/icon-192.png' })
+      await registration.showNotification(title, { body, tag, icon: `${import.meta.env.BASE_URL}icons/icon-192.png` })
       return true
     }
-    const notification = new Notification(title, { body, tag, icon: '/icons/icon-192.png' })
+    const notification = new Notification(title, { body, tag, icon: `${import.meta.env.BASE_URL}icons/icon-192.png` })
     notification.onclick = () => window.focus()
     return true
   } catch {

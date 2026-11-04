@@ -48,7 +48,12 @@ anywhere, point it at a free hosted Supabase project:
 4. Dashboard → Authentication → URL Configuration: set the Site URL to where the web app runs and add it under
    Redirect URLs, so password-reset links come back to the app. Under Sign In / Providers → Email, either turn off
    "Confirm email" or set up custom SMTP: Supabase's built-in email only sends a few messages per hour.
-5. Host the web app (for example GitHub Pages) so the phone and iPad browsers can open it.
+5. Web app: it deploys itself to **https://arushatre.github.io/schedule-planner/** on every push to `main`
+   (`.github/workflows/pages.yml`). Give the build your project's values under GitHub → repo Settings → Secrets and
+   variables → Actions → **Variables**: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (both public; row-level
+   security protects the data), then re-run the workflow (Actions → Deploy to GitHub Pages → Run workflow). In
+   Supabase, use that address as the Site URL and add it to Redirect URLs. On the phone, set
+   `EXPO_PUBLIC_WEB_URL` to it so password resets open there.
 
 Free projects pause after about a week without use; opening the dashboard resumes them.
 
@@ -101,7 +106,7 @@ It needs a free Google OAuth client ID once:
 1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Calendar API**.
 2. **OAuth consent screen**: choose *External*, fill in the app name, and add your own Google address under **Test users**.
 3. **Credentials → Create credentials → OAuth client ID → Web application.** Under *Authorized JavaScript origins* add
-   `http://localhost:5173` (and your hosted URL later, e.g. `https://<you>.github.io`).
+   `http://localhost:5173` (and `https://arushatre.github.io` for the hosted site).
 4. Copy the client ID into `.env` as `VITE_GOOGLE_CLIENT_ID=...` and restart `npm run dev`.
 5. Click **Connect Google Calendar**. Google warns the app is unverified because it's your own test app: choose *Continue*.
 

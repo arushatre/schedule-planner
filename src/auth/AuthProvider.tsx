@@ -36,7 +36,8 @@ export function AuthProvider({ children, client = supabase }: AuthProviderProps)
   }, [client])
 
   const value = useMemo<SessionContextValue>(() => {
-    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined
+    // Base-aware so email links return to the app when it's served from a subpath (GitHub Pages).
+    const redirectTo = typeof window !== 'undefined' ? new URL(import.meta.env.BASE_URL, window.location.origin).href : undefined
     const settle = (error: Parameters<typeof toAuthFailure>[0] | null): AuthResult =>
       error ? { error: toAuthFailure(error) } : ok
 

@@ -65,7 +65,12 @@ Verified at handoff:
    - Set the Site URL and Redirect URLs.
    - Turn off "Confirm email" or set up SMTP (the built-in email only sends a few messages per hour).
    - The steps are in the README under "Use it on every device, from anywhere".
-2. **Host the web app** so the phone and iPad browsers can reach it. GitHub Pages is proposed, but it isn't set up: that needs the user's OK, because the site would be public (data stays protected by RLS). It needs `base: '/schedule-planner/'`, the PWA scope, a Pages workflow, and the Pages origin added to the Supabase redirect URLs and the Google OAuth client.
+2. **Web hosting is live** (the user approved GitHub Pages): https://arushatre.github.io/schedule-planner/, deployed by
+   `.github/workflows/pages.yml` on every push to `main` (it runs the tests first). The base path comes from `VITE_BASE`
+   (local dev stays `/`), and email redirect links and the notification icon are base-aware. Until the repo
+   variables `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are set (after step 1), the site shows "Daybook isn't
+   configured". After that: re-run the workflow, set the Supabase Site URL and Redirect URLs to the Pages address, and
+   add the Pages origin to the Google OAuth client if Calendar sync is used.
 3. **Phone install:**
    - Expo Go needs the laptop dev server running.
    - A standalone install needs Xcode (not installed). With a free Apple ID it expires every 7 days.
