@@ -12,7 +12,7 @@ import type { SelectOption } from '@/components/ui/Select'
 import { Field, Pill, Segmented, TagInput, TextArea, TextInput } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { TIME_SLOTS, formatTime } from '@/lib/dates'
-import { makeTask } from '@/lib/tasks'
+import { defaultCategoryId, makeTask } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import { PRIORITIES, PRIORITY_LABEL, RECURRENCE_KINDS, RECURRENCE_LABEL, STATUSES, STATUS_LABEL } from '@/types/model'
@@ -51,7 +51,7 @@ interface FormState {
   alerts: number[]
 }
 
-function initialState(task: Task | null, defaults: { dueDate: string | null; categoryId: string }): FormState {
+function initialState(task: Task | null, defaults: { dueDate: string | null; categoryId: string; priority: Priority }): FormState {
   return {
     title: task?.title ?? '',
     notes: task?.notes ?? '',
@@ -59,7 +59,7 @@ function initialState(task: Task | null, defaults: { dueDate: string | null; cat
     dueTime: task?.dueTime ?? '',
     categoryId: task?.categoryId ?? defaults.categoryId,
     tags: task?.tags ?? [],
-    priority: task?.priority ?? 'medium',
+    priority: task?.priority ?? defaults.priority,
     status: task?.status ?? 'todo',
     subtasks: task?.subtasks ?? [],
     recurrence: task?.recurrence ?? { kind: 'none', weekdays: [], until: null },
@@ -74,8 +74,10 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
   const saveTask = useTasksStore((state) => state.saveTask)
   const { guard, remove } = useTaskActions()
 
-  const firstActive = categories.find((category) => !category.archived)
-  const [form, setForm] = useState(() => initialState(task, { dueDate, categoryId: firstActive?.id ?? '' }))
+  const personal = useUiStore((state) => state.personal)
+  const [form, setForm] = useState(() =>
+    initialState(task, { dueDate, categoryId: defaultCategoryId(categories, personal.defaultCategoryId), priority: personal.defaultPriority }),
+  )
   const [subtaskDraft, setSubtaskDraft] = useState('')
   const [errors, setErrors] = useState<{ title?: string; recurrence?: string }>({})
 

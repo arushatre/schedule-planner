@@ -12,7 +12,7 @@ import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { Category } from '@/types/model'
 
-function CategoryRow({ category }: { category: Category }) {
+export function CategoryRow({ category }: { category: Category }) {
   const saveCategory = useTasksStore((state) => state.saveCategory)
   const { guard } = useTaskActions()
   const [name, setName] = useState(category.name)

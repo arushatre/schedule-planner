@@ -49,3 +49,9 @@ export const TIME_SLOTS: string[] = Array.from({ length: 96 }, (_, index) => {
   const minutes = String((index % 4) * 15).padStart(2, '0')
   return `${hours}:${minutes}`
 })
+
+/** "Good morning" / "Good afternoon" / "Good evening", plus the name if there is one. */
+export function greetingFor(hour: number, name = ''): string {
+  const part = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  return `${part}${name.trim() ? `, ${name.trim()}` : ''}.`
+}

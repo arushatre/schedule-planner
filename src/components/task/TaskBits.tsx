@@ -9,7 +9,7 @@ import { PRIORITY_LABEL } from '@/types/model'
 import type { Priority } from '@/types/model'
 
 export function CategoryDot({ color, className }: { color: PaletteKey; className?: string }) {
-  return <span aria-hidden="true" className={cx('h-2.5 w-2.5 shrink-0 rounded-full', PALETTE[color].solid, className)} />
+  return <span aria-hidden="true" className={cx('inline-block h-2.5 w-2.5 shrink-0 rounded-full', PALETTE[color].solid, className)} />
 }
 
 const PRIORITY_ICON: Record<Priority, LucideIcon> = {

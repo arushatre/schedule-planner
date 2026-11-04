@@ -1,13 +1,12 @@
-import { CalendarDays, Plus, RotateCcw } from 'lucide-react'
+import { Plus, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
-import { Chip } from '@/components/ui/Chip'
-import { EmptyState } from '@/components/ui/EmptyState'
+import { TextInput } from '@/components/ui/fields'
 import { Select } from '@/components/ui/Select'
-import type { SelectOption } from '@/components/ui/Select'
+import { CategoryRow } from '@/features/categories/CategoryManager'
 import {
   ACCENTS,
   DEFAULT_APPEARANCE,
@@ -19,22 +18,13 @@ import {
   tokensFor,
 } from '@/lib/appearance'
 import type { Appearance } from '@/lib/appearance'
+import type { Personal } from '@/lib/appearance'
 import { cx } from '@/lib/cx'
-import { PALETTE, PALETTE_KEYS } from '@/lib/palette'
+import { defaultCategoryId } from '@/lib/tasks'
 import { THEME_LABEL, resolveTheme, systemPrefersDark } from '@/lib/theme'
+import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
-
-const priorityOptions: SelectOption[] = [
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
-]
-
-const categoryOptions: SelectOption[] = [
-  { value: 'school', label: 'School', color: 'slate' },
-  { value: 'personal', label: 'Personal', color: 'moss' },
-  { value: 'work', label: 'Work', color: 'clay' },
-]
+import { PRIORITIES, PRIORITY_LABEL } from '@/types/model'
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -151,103 +141,109 @@ function AppearanceStudio() {
           onChange={(accent) => setLook({ accent })}
           render={(key) => <span className="h-4 w-4 rounded-full" style={{ background: `rgb(${ACCENTS[key][mode].join(' ')})` }} />}
         />
-        <Choice label="Headings" options={FONTS} value={look.displayFont} onChange={(displayFont) => setLook({ displayFont })} render={(key) => <span style={{ fontFamily: FONTS[key].stack }}>Aa</span>} />
-        <Choice label="Body text" options={FONTS} value={look.bodyFont} onChange={(bodyFont) => setLook({ bodyFont })} render={(key) => <span style={{ fontFamily: FONTS[key].stack }}>Aa</span>} />
         <Choice label="Corners" options={RADII} value={look.radius} onChange={(radius) => setLook({ radius })} />
-        <Choice label="Text size" options={TEXT_SIZES} value={look.textSize} onChange={(textSize) => setLook({ textSize })} />
       </div>
     </section>
   )
 }
 
-// Customize page: the appearance controls, then every control rendered live with them.
+// Fonts and text size for the whole app. The presets above set a matching pair in one click.
+function TypographyCard() {
+  const look = useUiStore((state) => state.appearance)
+  const setLook = useUiStore((state) => state.setAppearance)
+  const fontPill = (key: keyof typeof FONTS) => <span style={{ fontFamily: FONTS[key].stack }}>Aa</span>
+
+  return (
+    <Section title="Typography">
+      <div className="grid gap-5">
+        <Choice label="Heading font" options={FONTS} value={look.displayFont} onChange={(displayFont) => setLook({ displayFont })} render={fontPill} />
+        <Choice label="Body font" options={FONTS} value={look.bodyFont} onChange={(bodyFont) => setLook({ bodyFont })} render={fontPill} />
+        <Choice label="Text size" options={TEXT_SIZES} value={look.textSize} onChange={(textSize) => setLook({ textSize })} />
+      </div>
+    </Section>
+  )
+}
+
+/** Your name for the Dashboard greeting; saves on Enter or when you leave the field. */
+function NameField() {
+  const personal = useUiStore((state) => state.personal)
+  const setPersonal = useUiStore((state) => state.setPersonal)
+  const [name, setName] = useState(personal.name)
+  return (
+    <label className="grid max-w-xs gap-1.5">
+      <span className="text-sm text-fg-muted">Your name, for the greeting</span>
+      <TextInput
+        value={name}
+        maxLength={40}
+        placeholder="Add your name"
+        onChange={(event) => setName(event.target.value)}
+        onBlur={() => setPersonal({ name: name.trim() })}
+        onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+      />
+    </label>
+  )
+}
+
+const SECTIONS: { key: 'showNextUp' | 'showSchedule' | 'showUpcoming'; label: string }[] = [
+  { key: 'showNextUp', label: 'Next up card' },
+  { key: 'showSchedule', label: 'Hour-by-hour schedule' },
+  { key: 'showUpcoming', label: 'Next 7 days' },
+]
+
+// Customize page: the look, then the settings that shape your Dashboard and new tasks.
 export function KitPage() {
-  const [checked, setChecked] = useState(true)
-  const [priority, setPriority] = useState<string | null>('medium')
-  const [category, setCategory] = useState<string | null>(null)
+  const personal = useUiStore((state) => state.personal)
+  const setPersonal = useUiStore((state) => state.setPersonal)
+  const openDialog = useUiStore((state) => state.openDialog)
+  const categories = useTasksStore((state) => state.categories)
+  const active = categories.filter((category) => !category.archived)
+  const set = (patch: Partial<Personal>) => setPersonal(patch)
 
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <AppearanceStudio />
 
-      <Section title="Category palette">
-        <div className="flex flex-wrap gap-3">
-          {PALETTE_KEYS.map((key) => (
-            <div key={key} className="flex items-center gap-2 text-sm text-fg-muted">
-              <span className={cx('h-6 w-6 rounded-full border border-line', PALETTE[key].solid)} />
-              {PALETTE[key].label}
-            </div>
+      <TypographyCard />
+
+      <Section title="Your categories">
+        <p className="-mt-2 mb-3 text-sm text-fg-muted">Rename a category, or click its dot to change its color everywhere.</p>
+        <ul className="grid gap-2">
+          {active.map((category) => (
+            <CategoryRow key={category.id} category={category} />
+          ))}
+        </ul>
+        <Button className="mt-3" variant="ghost" size="sm" icon={Plus} onClick={() => openDialog('categories')}>
+          Add or restore categories
+        </Button>
+      </Section>
+
+      <Section title="Dashboard">
+        <p className="-mt-2 mb-3 text-sm text-fg-muted">Your greeting, and what your Dashboard shows. Overdue appears only when something is late.</p>
+        <NameField />
+        <div className="mt-4 flex flex-col gap-3">
+          {SECTIONS.map(({ key, label }) => (
+            <Checkbox key={key} checked={personal[key]} onChange={(on) => set({ [key]: on })} label={label} />
           ))}
         </div>
       </Section>
 
-      <Section title="Typography">
-        <p className="font-display text-2xl">Good morning</p>
-        <p className="font-display text-xl">This week</p>
-        <p className="font-display text-lg">Section heading</p>
-        <p className="text-md">Essay draft, due Friday</p>
-        <p className="text-base">Body copy and controls</p>
-        <p className="text-sm text-fg-muted">Secondary text</p>
-        <p className="tabular text-xs text-fg-subtle">09:00 – 09:50</p>
-      </Section>
-
-      <Section title="Buttons">
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="primary" icon={Plus}>
-            New task
-          </Button>
-          <Button>Secondary</Button>
-          <Button variant="ghost">Ghost</Button>
-          <Button size="sm" variant="primary">
-            Small
-          </Button>
-          <Button disabled>Disabled</Button>
-        </div>
-      </Section>
-
-      <Section title="Checkbox">
-        <div className="flex flex-col gap-3">
-          <Checkbox checked={checked} onChange={setChecked} label="Interactive" />
-          <Checkbox checked={false} onChange={() => undefined} label="Unchecked" />
-          <Checkbox checked={false} indeterminate onChange={() => undefined} label="Indeterminate" />
-          <Checkbox checked onChange={() => undefined} label="Disabled" disabled />
-        </div>
-      </Section>
-
-      <Section title="Select">
+      <Section title="New tasks">
+        <p className="-mt-2 mb-3 text-sm text-fg-muted">Where a task starts when you don’t say otherwise, in quick-add or the editor.</p>
         <div className="grid max-w-xs gap-3">
           <Select
-            ariaLabel="Priority"
-            options={priorityOptions}
-            value={priority}
-            onChange={setPriority}
+            ariaLabel="Default priority"
+            options={PRIORITIES.map((priority) => ({ value: priority, label: `${PRIORITY_LABEL[priority]} priority` }))}
+            value={personal.defaultPriority}
+            onChange={(defaultPriority) => set({ defaultPriority })}
           />
           <Select
-            ariaLabel="Category"
-            options={categoryOptions}
-            value={category}
-            onChange={setCategory}
-            placeholder="Choose a category"
+            ariaLabel="Default category"
+            options={active.map((category) => ({ value: category.id, label: category.name, color: category.colorKey }))}
+            value={defaultCategoryId(categories, personal.defaultCategoryId) || null}
+            onChange={(defaultCategoryId) => set({ defaultCategoryId })}
+            placeholder="No categories yet"
           />
         </div>
-      </Section>
-
-      <Section title="Calendar chips">
-        <div className="grid max-w-xs gap-2">
-          <Chip label="Read chapter 4" color="slate" time="09:00" />
-          <Chip label="Gym" color="moss" />
-          <Chip label="Submit report" color="clay" time="17:00" overdue />
-          <Chip label="Buy groceries" color="ochre" done />
-        </div>
-      </Section>
-
-      <Section title="Empty state">
-        <EmptyState
-          icon={CalendarDays}
-          title="Nothing scheduled"
-          description="Tasks you add will appear here."
-          action={<Button variant="primary" icon={Plus}>Add a task</Button>}
-        />
       </Section>
     </div>
   )

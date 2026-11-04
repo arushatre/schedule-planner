@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { ACCENTS, DEFAULT_APPEARANCE, PRESETS, appearanceCss, contrast, parseAppearance, tokensFor } from './appearance'
+import { ACCENTS, DEFAULT_APPEARANCE, DEFAULT_PERSONAL, PRESETS, appearanceCss, contrast, parseAppearance, parsePersonal, tokensFor } from './appearance'
 import type { AccentKey } from './appearance'
 
 const luminance = (triplet: string) => {
@@ -50,5 +50,17 @@ describe('frame and overdue colors', () => {
 
   it('never emits glow tokens', () => {
     expect(appearanceCss(DEFAULT_APPEARANCE)).not.toMatch(/glow/)
+  })
+})
+
+describe('personal settings', () => {
+  it('keeps valid fields and falls back for missing or bad ones', () => {
+    expect(parsePersonal(null)).toEqual(DEFAULT_PERSONAL)
+    expect(parsePersonal('nope')).toEqual(DEFAULT_PERSONAL)
+    expect(parsePersonal('{"name":"Sam","showSchedule":false,"defaultPriority":"loud","defaultCategoryId":7}')).toEqual({
+      ...DEFAULT_PERSONAL,
+      name: 'Sam',
+      showSchedule: false,
+    })
   })
 })

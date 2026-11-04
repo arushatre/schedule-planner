@@ -11,12 +11,13 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { cx } from '@/lib/cx'
-import { WEEK_OPTIONS, formatTime, friendlyDate, fromDateStr, shiftDate, toDateStr, todayStr } from '@/lib/dates'
+import { WEEK_OPTIONS, formatTime, friendlyDate, fromDateStr, greetingFor, shiftDate, toDateStr, todayStr } from '@/lib/dates'
 import { readStored, writeStored } from '@/lib/persist'
 import { compareByDue, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
 import { computeStats } from '@/lib/stats'
 import { categoryFor } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
+import { useUiStore } from '@/store/ui'
 import type { Occurrence } from '@/types/model'
 import { Schedule } from './Schedule'
 import { StreakButton } from './StreakButton'
@@ -24,12 +25,6 @@ import { StreakButton } from './StreakButton'
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
 const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
-
-function greeting(hour: number): string {
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
-}
 
 function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
@@ -192,6 +187,7 @@ function TaskList({ occs, hideDate }: { occs: Occurrence[]; hideDate?: boolean }
 
 export function TodayView() {
   const tasks = useTasksStore((state) => state.tasks)
+  const personal = useUiStore((state) => state.personal)
   const today = todayStr()
   const [selected, setSelected] = useState(today)
   const [weekOffset, setWeekOffset] = useState(0)
@@ -234,7 +230,7 @@ export function TodayView() {
   return (
     <div className="grid gap-8">
       <section aria-label="Today at a glance">
-        <h2 className="font-display text-xl">{greeting(new Date().getHours())}.</h2>
+        <h2 className="font-display text-xl">{greetingFor(new Date().getHours(), personal.name)}</h2>
         <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-fg-muted">
           <span className="inline-flex items-center gap-2">
             <ProgressRing done={doneToday} total={todays.length} />
@@ -260,7 +256,7 @@ export function TodayView() {
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="grid gap-8">
-          {isToday && next && <NextUp occ={next} />}
+          {personal.showNextUp && isToday && next && <NextUp occ={next} />}
 
           <Section title={selectedLabel} count={selectedDay.length}>
             <div className="grid gap-3">
@@ -279,7 +275,7 @@ export function TodayView() {
             </div>
           </Section>
 
-          {isToday && (
+          {personal.showUpcoming && isToday && (
             <Section title="Next 7 days" count={upcoming.length}>
               {upcoming.length === 0 ? (
                 <p className="text-base text-fg-muted">Nothing scheduled for the coming week.</p>
@@ -299,7 +295,7 @@ export function TodayView() {
 
         <div className="grid gap-8">
           {overdue.length > 0 && <OverdueDropdown overdue={overdue} />}
-          <Schedule date={selected} occs={selectedDay} />
+          {personal.showSchedule && <Schedule date={selected} occs={selectedDay} />}
         </div>
       </div>
     </div>

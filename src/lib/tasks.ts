@@ -39,3 +39,9 @@ export const UNCATEGORIZED: Category = {
 export function categoryFor(id: string, categories: Category[]): Category {
   return categories.find((category) => category.id === id) ?? UNCATEGORIZED
 }
+
+/** The category new tasks start in: the chosen default if it's still active, else the first active one. */
+export function defaultCategoryId(categories: Category[], preferred: string | null): string {
+  const active = categories.filter((category) => !category.archived)
+  return active.find((category) => category.id === preferred)?.id ?? active[0]?.id ?? ''
+}

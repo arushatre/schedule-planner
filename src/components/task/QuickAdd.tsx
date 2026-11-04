@@ -8,7 +8,7 @@ import { TextInput } from '@/components/ui/fields'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { formatTime, friendlyDate, todayStr } from '@/lib/dates'
 import { parseQuickAdd } from '@/lib/quickAdd'
-import { categoryFor, makeTask } from '@/lib/tasks'
+import { categoryFor, defaultCategoryId, makeTask } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import { PRIORITY_LABEL, RECURRENCE_LABEL } from '@/types/model'
@@ -41,6 +41,7 @@ export function QuickAdd({ dueDate, label, placeholder = 'Add a task, try “Ess
   const createTask = useTasksStore((state) => state.createTask)
   const deleteTasks = useTasksStore((state) => state.deleteTasks)
   const pushToast = useUiStore((state) => state.pushToast)
+  const personal = useUiStore((state) => state.personal)
   const { guard } = useTaskActions()
 
   const parsed = useMemo(
@@ -51,7 +52,7 @@ export function QuickAdd({ dueDate, label, placeholder = 'Add a task, try “Ess
   const submit = (event: FormEvent) => {
     event.preventDefault()
     if (!parsed || !parsed.title.trim()) return
-    const category = parsed.categoryId ?? categories.find((candidate) => !candidate.archived)?.id ?? ''
+    const category = parsed.categoryId ?? defaultCategoryId(categories, personal.defaultCategoryId)
     const date = parsed.dueDate ?? dueDate
     setText('')
     void guard(async () => {
@@ -62,7 +63,7 @@ export function QuickAdd({ dueDate, label, placeholder = 'Add a task, try “Ess
           dueDate: date,
           dueTime: date ? parsed.dueTime : null,
           tags: parsed.tags,
-          priority: parsed.priority ?? 'medium',
+          priority: parsed.priority ?? personal.defaultPriority,
           ...(parsed.recurrence ? { recurrence: parsed.recurrence } : {}),
         }),
       )

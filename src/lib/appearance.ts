@@ -1,6 +1,9 @@
 // User-tunable appearance: every surface/text/accent token is generated from a
 // background tone + accent, so the whole UI re-skins from a few choices.
 
+import { PRIORITIES } from '@/types/model'
+import type { Priority } from '@/types/model'
+
 export type Rgb = [number, number, number]
 
 export interface Tone {
@@ -212,4 +215,45 @@ export function applyAppearance(look: Appearance, doc: Document = document): voi
     doc.head.appendChild(style)
   }
   style.textContent = appearanceCss(look)
+}
+
+/** Personal touches outside the color scheme, shared by the web Customize page and phone Settings. */
+export interface Personal {
+  /** Shown in Today's greeting ("Good morning, Sam."); empty = no name. */
+  name: string
+  showNextUp: boolean
+  showUpcoming: boolean
+  showSchedule: boolean
+  defaultPriority: Priority
+  /** null = the first active category. */
+  defaultCategoryId: string | null
+}
+
+export const DEFAULT_PERSONAL: Personal = {
+  name: '',
+  showNextUp: true,
+  showUpcoming: true,
+  showSchedule: true,
+  defaultPriority: 'medium',
+  defaultCategoryId: null,
+}
+
+/** Parses a stored value, falling back field-by-field to defaults. */
+export function parsePersonal(raw: string | null): Personal {
+  let p: Record<string, unknown> = {}
+  try {
+    const value: unknown = JSON.parse(raw ?? '{}')
+    if (typeof value === 'object' && value !== null) p = value as Record<string, unknown>
+  } catch {
+    // Corrupt value: use defaults.
+  }
+  const flag = (key: 'showNextUp' | 'showUpcoming' | 'showSchedule') => (typeof p[key] === 'boolean' ? (p[key] as boolean) : DEFAULT_PERSONAL[key])
+  return {
+    name: typeof p.name === 'string' ? p.name.slice(0, 40) : '',
+    showNextUp: flag('showNextUp'),
+    showUpcoming: flag('showUpcoming'),
+    showSchedule: flag('showSchedule'),
+    defaultPriority: PRIORITIES.includes(p.defaultPriority as Priority) ? (p.defaultPriority as Priority) : 'medium',
+    defaultCategoryId: typeof p.defaultCategoryId === 'string' ? p.defaultCategoryId : null,
+  }
 }
