@@ -49,3 +49,11 @@ export function sendTest(): Promise<string> {
     trigger: null,
   })
 }
+
+/** Clears every queued alert (on sign-out); runs after any re-plan already in progress. */
+export function cancelAll(): Promise<void> {
+  queue = queue
+    .then(() => Notifications.cancelAllScheduledNotificationsAsync())
+    .catch((error: unknown) => console.warn('Could not cancel notifications', error))
+  return queue
+}

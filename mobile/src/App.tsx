@@ -1,15 +1,18 @@
 import { StatusBar } from 'expo-status-bar'
 import { useEffect, useState } from 'react'
-import { AppState, Pressable, View } from 'react-native'
+import { ActivityIndicator, AppState, Pressable, View } from 'react-native'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context'
 
 import { todayStr } from '@/lib/dates'
 import { reschedule } from './notifications'
+import { AuthScreen } from './screens/AuthScreen'
 import { ListScreen } from './screens/ListScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { TaskEditor } from './screens/TaskEditor'
 import { TodayScreen } from './screens/TodayScreen'
-import { load, useStore } from './store'
+import { load, syncNow, useStore } from './store'
+import { supabaseConfigError } from './supabase'
 import { useTheme } from './theme'
 import { Text } from './ui'
 
@@ -48,7 +51,6 @@ function Shell() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.canvas }} edges={['top', 'left', 'right']}>
-      <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 }}>
         <Text size="xl" display>{title}</Text>
         {tab !== 'settings' && (
@@ -70,8 +72,8 @@ function Shell() {
       </View>
 
       <View style={{ flex: 1 }}>
-        {tab === 'today' && <TodayScreen today={today} onOpen={setEditing} />}
-        {tab === 'all' && <ListScreen today={today} onOpen={setEditing} />}
+        {tab === 'today' && <TodayScreen today={today} onOpen={setEditing} onRefresh={syncNow} />}
+        {tab === 'all' && <ListScreen today={today} onOpen={setEditing} onRefresh={syncNow} />}
         {tab === 'settings' && <SettingsScreen />}
       </View>
 
@@ -104,10 +106,50 @@ function Shell() {
   )
 }
 
+/** Shown instead of the sign-in screen when the build has no Supabase settings. */
+function ConfigError({ message }: { message: string }) {
+  const theme = useTheme()
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.canvas, padding: 24, justifyContent: 'center', gap: 12 }}>
+      <Text size="lg" display accessibilityRole="header">Daybook isn’t set up yet</Text>
+      <Text tone="muted">{message}</Text>
+      <Text size="sm" tone="subtle">See “Accounts and sync” in mobile/README.md.</Text>
+    </SafeAreaView>
+  )
+}
+
+function Splash() {
+  const theme = useTheme()
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.canvas, alignItems: 'center', justifyContent: 'center' }}>
+      <ActivityIndicator color={theme.muted} accessibilityLabel="Loading" />
+    </View>
+  )
+}
+
+function Screen() {
+  const { auth } = useStore()
+  if (supabaseConfigError) return <ConfigError message={supabaseConfigError} />
+  if (auth === 'loading') return <Splash />
+  return auth === 'signedIn' ? <Shell /> : <AuthScreen />
+}
+
+function Gate() {
+  const theme = useTheme()
+  return (
+    <>
+      <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
+      <Screen />
+    </>
+  )
+}
+
 export function App() {
   return (
-    <SafeAreaProvider>
-      <Shell />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Gate />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   )
 }

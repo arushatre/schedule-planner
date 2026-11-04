@@ -3,7 +3,12 @@
   "compilerOptions": {
     "strict": true,
     "noUncheckedIndexedAccess": true,
-    "paths": { "@/*": ["../src/*"] }
+    "paths": {
+      "@/*": ["../src/*"],
+      // Shared files type-import Supabase; use this app's copy so the client types match.
+      "@supabase/supabase-js": ["./node_modules/@supabase/supabase-js"]
+    }
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  // env.d.ts types import.meta.env, read by ../src/lib/supabase.ts (type-only here, never bundled).
+  "include": ["**/*.ts", "**/*.tsx", "../src/env.d.ts"]
 }

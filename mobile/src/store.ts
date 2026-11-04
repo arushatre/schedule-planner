@@ -1,31 +1,36 @@
-import Storage from 'expo-sqlite/kv-store'
 import { useSyncExternalStore } from 'react'
+import { Alert } from 'react-native'
 
-import { DEFAULT_APPEARANCE, parseAppearance } from '@/lib/appearance'
-import type { Appearance } from '@/lib/appearance'
-import { parseBackup, serializeBackup } from '@/lib/backup'
+import { serializeBackup, withUuidIds } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import { isRecurring } from '@/lib/recurrence'
+import { planLegacyImport } from '@/sync/records'
+import { createSupabaseRemote } from '@/sync/remote'
 import type { Category, Occurrence, Task } from '@/types/model'
+import { DEFAULT_PREFS, loadPrefs, markLegacyImported, readLegacy, readSaved, savePrefs, writeSaved } from './cache'
+import type { Prefs } from './cache'
+import { cancelAll } from './notifications'
+import { addAll, enqueue, replaceAllWith } from './outbox'
+import type { OutboxEntry, Write } from './outbox'
+import { supabase, supabaseConfigError } from './supabase'
+import { IDLE, startSync } from './sync'
+import type { Local, Sync, SyncStatus } from './sync'
 
-export type Mode = 'system' | 'light' | 'dark'
+export type { Mode, Prefs } from './cache'
 
-export interface Prefs {
-  appearance: Appearance
-  mode: Mode
-  notifications: boolean
-  briefing: boolean
+export interface User {
+  id: string
+  email: string
 }
 
 interface State extends BackupData {
+  /** The signed-in user's data has been loaded from this phone. */
   ready: boolean
   prefs: Prefs
+  auth: 'loading' | 'signedOut' | 'signedIn'
+  user: User | null
+  sync: SyncStatus
 }
-
-// Data is stored in the same format as a web backup file, so the phone and the
-// laptop exchange data by exporting on one and importing on the other.
-const DATA_KEY = 'daybook:data'
-const PREFS_KEY = 'daybook:prefs'
 
 const SEED: Pick<Category, 'name' | 'colorKey'>[] = [
   { name: 'School', colorKey: 'slate' },
@@ -33,9 +38,9 @@ const SEED: Pick<Category, 'name' | 'colorKey'>[] = [
   { name: 'Work', colorKey: 'clay' },
 ]
 
-const DEFAULT_PREFS: Prefs = { appearance: DEFAULT_APPEARANCE, mode: 'system', notifications: false, briefing: true }
+const EMPTY: BackupData = { tasks: [], categories: [], classBlocks: [] }
 
-let state: State = { ready: false, tasks: [], categories: [], classBlocks: [], prefs: DEFAULT_PREFS }
+let state: State = { ready: false, ...EMPTY, prefs: DEFAULT_PREFS, auth: 'loading', user: null, sync: IDLE }
 const listeners = new Set<() => void>()
 
 function emit(next: Partial<State>): void {
@@ -43,41 +48,147 @@ function emit(next: Partial<State>): void {
   listeners.forEach((listener) => listener())
 }
 
-function saveData(next: BackupData): void {
-  emit({ tasks: next.tasks, categories: next.categories, classBlocks: next.classBlocks })
-  // Synchronous so a change isn't lost if the app is killed right after it.
-  Storage.setItemSync(DATA_KEY, exportData())
+interface Session {
+  user: User
+  outbox: OutboxEntry[]
+  pulledAt: number | null
+  sync: Sync | null
+  /** The pre-accounts data offer was handled this session (asked at most once per launch). */
+  offered: boolean
 }
 
-function loadPrefs(raw: string | null): Prefs {
-  try {
-    const parsed = JSON.parse(raw ?? '{}') as Partial<Prefs>
-    return {
-      appearance: parseAppearance(JSON.stringify(parsed.appearance ?? {})),
-      mode: parsed.mode === 'light' || parsed.mode === 'dark' ? parsed.mode : 'system',
-      notifications: parsed.notifications === true,
-      briefing: parsed.briefing !== false,
-    }
-  } catch {
-    return DEFAULT_PREFS
-  }
+let session: Session | null = null
+
+const dataOf = (): BackupData => ({ tasks: state.tasks, categories: state.categories, classBlocks: state.classBlocks })
+
+/** Updates state and persists data + outbox together. Synchronous, so a change survives the app being killed. */
+function persist(owner: Session, next: Local): void {
+  if (session !== owner) return
+  owner.outbox = next.outbox
+  emit({ ...next.data, sync: { ...state.sync, pending: next.outbox.length } })
+  writeSaved(owner.user.id, next, owner.pulledAt)
 }
 
-export function load(): void {
-  const raw = Storage.getItemSync(DATA_KEY)
-  let data: BackupData = { tasks: [], categories: [], classBlocks: [] }
-  try {
-    if (raw) data = parseBackup(raw)
-  } catch {
-    // Unreadable data: keep a copy rather than overwrite it, and start empty.
-    Storage.setItemSync(`${DATA_KEY}:corrupt:${Date.now()}`, raw ?? '')
+/** Queues local writes for the server and applies `data` optimistically. */
+function commit(data: BackupData, writes: Write[]): void {
+  if (!session) {
+    console.warn('Daybook: ignored a change made while signed out')
+    return
   }
-  if (data.categories.length === 0) {
+  const outbox = writes.reduce(enqueue, session.outbox)
+  persist(session, { data, outbox })
+  session.sync?.flush()
+}
+
+const upsert = <T extends { id: string }>(list: T[], item: T): T[] =>
+  list.some((existing) => existing.id === item.id) ? list.map((existing) => (existing.id === item.id ? item : existing)) : [...list, item]
+
+// ---------------------------------------------------------------------------
+// First successful pull on this phone: seed, and offer data saved before accounts
+// ---------------------------------------------------------------------------
+
+/** Adds imported records; categories with the same name as an existing one are reused. */
+function importData(raw: BackupData): void {
+  const change = addAll(dataOf(), planLegacyImport(raw, state.categories))
+  commit(change.data, change.writes)
+}
+
+/** After the first successful pull of each session; `first` = first ever for this user on this phone. */
+function afterPull(user: User, first: boolean): void {
+  const legacy = readLegacy()
+  const markImported = () => markLegacyImported(user.id)
+  const empty = state.tasks.length === 0 && state.classBlocks.length === 0
+  if (legacy && empty) {
+    importData(legacy)
+    markImported()
+  }
+  if (first && state.categories.length === 0) {
     const now = Date.now()
-    data.categories = SEED.map((seed, order) => ({ ...seed, id: crypto.randomUUID(), archived: false, order, createdAt: now }))
+    importData({ ...EMPTY, categories: SEED.map((seed, order) => ({ ...seed, id: crypto.randomUUID(), archived: false, order, createdAt: now })) })
   }
-  emit({ ready: true, prefs: loadPrefs(Storage.getItemSync(PREFS_KEY)) })
-  saveData(data)
+  if (legacy && !empty) {
+    Alert.alert(
+      'Add this phone’s tasks to your account?',
+      `${legacy.tasks.length} tasks were saved on this phone before you signed in. Categories with the same name are combined. If you choose Not now, Daybook asks again next time you open it.`,
+      [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Add them',
+          onPress: () => {
+            if (session?.user.id !== user.id) return
+            importData(legacy)
+            markImported()
+          },
+        },
+      ],
+    )
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Session lifecycle
+// ---------------------------------------------------------------------------
+
+function startSession(user: User): void {
+  const saved = readSaved(user.id)
+  const owner: Session = { user, outbox: saved.outbox, pulledAt: saved.pulledAt, sync: null, offered: false }
+  session = owner
+  emit({ ...saved.data, ready: true, auth: 'signedIn', user, sync: { ...IDLE, pending: saved.outbox.length } })
+  owner.sync = startSync(user.id, createSupabaseRemote(supabase), {
+    read: () => ({ data: dataOf(), outbox: owner.outbox }),
+    write: (next) => persist(owner, next),
+    onStatus: (status) => {
+      if (session === owner) emit({ sync: status })
+    },
+    onPulled: () => {
+      if (session !== owner || owner.offered) return
+      owner.offered = true
+      const first = owner.pulledAt === null
+      if (first) {
+        owner.pulledAt = Date.now()
+        persist(owner, { data: dataOf(), outbox: owner.outbox })
+      }
+      afterPull(user, first)
+    },
+    onRejected: (_entity, error) =>
+      Alert.alert('A change couldn’t be saved', `The server refused it, so it was undone.\n\n${error.message}`),
+  })
+  void owner.sync.sync()
+}
+
+function endSession(): void {
+  session?.sync?.stop()
+  session = null
+  emit({ ...EMPTY, ready: false, auth: 'signedOut', user: null, sync: IDLE })
+  void cancelAll()
+}
+
+function onUser(user: User | null): void {
+  if (user && session?.user.id === user.id) {
+    if (session.user.email !== user.email) emit({ user })
+    return
+  }
+  if (session) endSession()
+  if (user) startSession(user)
+  else emit({ auth: 'signedOut' })
+}
+
+let loaded = false
+
+/** Loads preferences and follows the auth session (signed in → this user's cached data, then sync). */
+export function load(): void {
+  if (loaded) return
+  loaded = true
+  emit({ prefs: loadPrefs() })
+  if (supabaseConfigError) {
+    emit({ auth: 'signedOut' })
+    return
+  }
+  supabase.auth.onAuthStateChange((_event, next) => {
+    const user = next?.user ? { id: next.user.id, email: next.user.email ?? '' } : null
+    // Supabase warns against doing work inside this callback; defer it.
+    setTimeout(() => onUser(user), 0)
+  })
 }
 
 export function useStore(): State {
@@ -92,19 +203,34 @@ export function useStore(): State {
 
 export const getState = (): State => state
 
+/** Pushes pending changes and pulls the latest. Resolves (never rejects) when done; status is in `sync`. */
+export function syncNow(): Promise<void> {
+  return session?.sync?.sync() ?? Promise.resolve()
+}
+
+/** Signs out of this phone only. Unsynced changes stay queued for this account on this phone. */
+export async function signOut(): Promise<void> {
+  const { error } = await supabase.auth.signOut({ scope: 'local' })
+  // Supabase drops the local session even when the server can't be reached.
+  if (error) console.warn('Daybook: sign-out could not reach the server', error)
+  onUser(null)
+}
+
 export function saveTask(task: Task): void {
   const next = { ...task, updatedAt: Date.now() }
-  const exists = state.tasks.some((existing) => existing.id === task.id)
-  saveData({ ...state, tasks: exists ? state.tasks.map((t) => (t.id === task.id ? next : t)) : [...state.tasks, next] })
+  const before = state.tasks.find((existing) => existing.id === task.id) ?? null
+  commit({ ...dataOf(), tasks: upsert(state.tasks, next) }, [{ entity: 'task', id: next.id, op: 'upsert', payload: next, before }])
 }
 
 export function deleteTask(id: string): void {
-  saveData({ ...state, tasks: state.tasks.filter((task) => task.id !== id) })
+  const before = state.tasks.find((task) => task.id === id)
+  if (!before) return
+  commit({ ...dataOf(), tasks: state.tasks.filter((task) => task.id !== id) }, [{ entity: 'task', id, op: 'delete', payload: null, before }])
 }
 
 /** Same rule as the web app: recurring tasks complete per occurrence, others via status. */
 export function setDone(occ: Occurrence, done: boolean): void {
-  const task = occ.task
+  const task = state.tasks.find((existing) => existing.id === occ.task.id) ?? occ.task
   if (isRecurring(task) && occ.originalDate) {
     const dates = new Set(task.completedDates)
     if (done) dates.add(occ.originalDate)
@@ -115,16 +241,17 @@ export function setDone(occ: Occurrence, done: boolean): void {
   }
 }
 
-/** Replaces everything with an imported backup (keeps current categories if it has none). */
-export function replaceAll(data: BackupData): void {
-  saveData(data.categories.length > 0 ? data : { ...data, categories: state.categories })
+/** Replaces the account's data with an imported backup (keeps current categories if it has none). */
+export function replaceAll(raw: BackupData): void {
+  const change = replaceAllWith(dataOf(), withUuidIds(raw.categories.length > 0 ? raw : { ...raw, categories: state.categories }))
+  commit(change.data, change.writes)
 }
 
 export function exportData(): string {
-  return serializeBackup({ tasks: state.tasks, categories: state.categories, classBlocks: state.classBlocks })
+  return serializeBackup(dataOf())
 }
 
 export function setPrefs(patch: Partial<Prefs>): void {
   emit({ prefs: { ...state.prefs, ...patch } })
-  Storage.setItemSync(PREFS_KEY, JSON.stringify(state.prefs))
+  savePrefs(state.prefs)
 }
