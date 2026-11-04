@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { MAX_LATE_MINUTES, alertWindow, briefing, dueAlerts } from './reminders'
+import { MAX_LATE_MINUTES, MAX_PLANNED, alertWindow, briefing, dueAlerts, planNotifications } from './reminders'
 import { expandOccurrences } from './recurrence'
 import { makeTask } from './tasks'
 
@@ -83,5 +83,20 @@ describe('briefing', () => {
 
   it('stays quiet on an empty schedule', () => {
     expect(briefing([], today)).toBeNull()
+  })
+})
+
+describe('planNotifications', () => {
+  it('queues future alerts and briefings soonest first, capped for iOS', () => {
+    const tasks = [makeTask({ ...base, dueDate: '2026-09-22', dueTime: '17:00', alerts: [60, 1440] })]
+    const plan = planNotifications(tasks, at(12, 0), true)
+    expect(plan.map((n) => [n.date.getDate(), n.date.getHours(), n.title, n.body])).toEqual([
+      [21, 17, 'Call', 'Due in 1 day'],
+      [22, 7, '1 due today', 'Next: Call at 5:00 PM'],
+      [22, 16, 'Call', 'Due in 1 hr'],
+      [23, 7, 'Nothing due today', '1 overdue'],
+    ])
+    const many = Array.from({ length: 80 }, (_, i) => makeTask({ ...base, dueTime: '23:00', title: `T${i}`, alerts: [0] }))
+    expect(planNotifications(many, at(12, 0), false)).toHaveLength(MAX_PLANNED)
   })
 })

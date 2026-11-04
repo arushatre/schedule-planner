@@ -1,4 +1,4 @@
-import { parse, subMinutes } from 'date-fns'
+import { format, parse, subMinutes } from 'date-fns'
 
 import { formatTime, shiftDate } from '@/lib/dates'
 import { compareByDue, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
@@ -94,4 +94,37 @@ export function briefing(tasks: Task[], today: string): { title: string; body: s
   ].filter(Boolean)
   const title = todays.length > 0 ? `${todays.length} due today` : 'Nothing due today'
   return { title, body: body.join(' · ') }
+}
+
+export interface PlannedNotification {
+  date: Date
+  title: string
+  body: string
+}
+
+/** iOS keeps at most 64 pending local notifications; leave headroom. */
+export const MAX_PLANNED = 60
+const PLAN_DAYS = 14
+
+/**
+ * Everything a device that can schedule ahead (the phone app) should queue:
+ * upcoming alerts for the next two weeks plus a few morning briefings,
+ * soonest first and capped for iOS.
+ */
+export function planNotifications(tasks: Task[], now: Date, withBriefing: boolean): PlannedNotification[] {
+  const today = format(now, 'yyyy-MM-dd')
+  const horizon = now.getTime() + PLAN_DAYS * 86_400_000
+  const alerts = expandOccurrences(tasks, today, shiftDate(today, PLAN_DAYS + 7))
+    .flatMap(alertsFor)
+    .filter((alert) => alert.at > now && alert.at.getTime() <= horizon)
+    .map((alert) => ({ date: alert.at, title: alert.occ.task.title, body: alert.label }))
+  const briefings = withBriefing
+    ? [0, 1, 2].flatMap((offset) => {
+        const day = shiftDate(today, offset)
+        const date = at(day, `${String(BRIEFING_HOUR).padStart(2, '0')}:00`)
+        const summary = date > now ? briefing(tasks, day) : null
+        return summary ? [{ date, ...summary }] : []
+      })
+    : []
+  return [...alerts, ...briefings].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, MAX_PLANNED)
 }
