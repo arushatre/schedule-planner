@@ -59,7 +59,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { view: 'today', label: 'Today', icon: CalendarCheck },
+  { view: 'today', label: 'Dashboard', icon: CalendarCheck },
   { view: 'list', label: 'List', icon: ListChecks },
   { view: 'calendar', label: 'Calendar', icon: CalendarDays },
   { view: 'insights', label: 'Insights', icon: ChartColumn },
@@ -132,7 +132,14 @@ export function App() {
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-line bg-frame p-4 text-frame-fg md:flex">
-        <div className="mb-6 px-3 pt-1 font-display text-lg">Daybook</div>
+        <button
+          type="button"
+          onClick={() => setView('today')}
+          aria-label="Daybook, go to Dashboard"
+          className="mb-6 self-start rounded-md px-3 pt-1 text-left font-display text-lg transition-colors hover:text-fg-muted"
+        >
+          Daybook
+        </button>
         <nav aria-label="Primary" className="flex flex-col gap-1">
           {NAV.map((item) => (
             <NavButton key={item.view} item={item} active={item.view === view} onFrame onSelect={() => setView(item.view)} />
@@ -153,7 +160,7 @@ export function App() {
           {view === 'today' ? (
             // Today's greeting is its own heading; the bar just carries the date.
             <div>
-              <h1 className="sr-only">Today</h1>
+              <h1 className="sr-only">Dashboard</h1>
               <p className="text-sm uppercase tracking-wide text-fg-muted">{format(new Date(), 'EEEE, MMMM d')}</p>
             </div>
           ) : (

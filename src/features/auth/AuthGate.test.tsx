@@ -40,13 +40,13 @@ describe('AuthGate', () => {
   it('shows a splash while the stored session is being read', () => {
     renderGate('loading')
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Today' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
 
   it('keeps the app behind the sign-in screen when signed out', () => {
     renderGate('signed_out')
     expect(screen.getByRole('heading', { name: 'Welcome back' })).toBeInTheDocument()
-    expect(screen.queryByRole('heading', { name: 'Today' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Dashboard' })).not.toBeInTheDocument()
   })
 
   it('asks for a new password after a recovery link', () => {
@@ -56,7 +56,7 @@ describe('AuthGate', () => {
 
   it('boots the app from the user’s cache once signed in', async () => {
     renderGate('signed_in')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Today' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument()
     // A brand-new account gets the default categories after its first (fake) pull.
     await vi.waitFor(() =>
       expect(useTasksStore.getState().categories.map((category) => category.name)).toEqual(['School', 'Personal', 'Work']),
