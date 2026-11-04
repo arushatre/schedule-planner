@@ -19,6 +19,17 @@ npm run dev                      # http://localhost:5173
 | `npm run lint` | ESLint (no `any`, named exports only, import order) |
 | `npm test` | Vitest unit tests |
 
+### Open it on your phone or iPad (same Wi-Fi)
+
+```bash
+npm run dev -- --host            # prints a Network address, e.g. http://10.39.83.47:5173
+```
+
+Open that Network address in Safari on the phone or iPad while the laptop stays on. Campus networks such as eduroam
+often block device-to-device traffic; a phone hotspot works around that. Each browser keeps its own data until
+accounts and sync are switched on (in progress, see `HANDOFF.md`); until then, move data with Settings → Download
+backup / Import.
+
 ## What's in it
 
 - **Today**: today's tasks, a clickable week strip, overdue, next 7 days, progress and a streak
