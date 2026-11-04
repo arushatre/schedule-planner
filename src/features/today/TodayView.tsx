@@ -29,13 +29,10 @@ function greeting(hour: number): string {
 function Section({ title, count, tone, children }: { title: string; count?: number; tone?: 'overdue'; children: ReactNode }) {
   const overdue = tone === 'overdue'
   return (
-    <section
-      aria-label={title}
-      className={cx(overdue && 'rounded-lg border border-l-[3px] border-vermilion-edge/30 border-l-vermilion-edge bg-vermilion-wash p-4 md:p-5')}
-    >
+    <section aria-label={title}>
       <h2 className="mb-3 flex items-center gap-2 font-display text-lg">
-        {overdue && <Icon icon={CircleAlert} size={18} className="text-vermilion-ink" />}
-        <span className={overdue ? 'text-vermilion-ink' : undefined}>{title}</span>
+        {overdue && <Icon icon={CircleAlert} size={18} className="text-overdue" />}
+        <span className={overdue ? 'text-overdue' : undefined}>{title}</span>
         {count !== undefined && <span className="tabular font-sans text-base text-fg-subtle">{count}</span>}
       </h2>
       {children}
@@ -72,7 +69,7 @@ function Hero({ todays, overdueCount, streak, doneThisWeek }: HeroProps) {
   if (overdueCount > 0) summary += ` ${plural(overdueCount, 'overdue task')} to catch up on.`
 
   return (
-    <section aria-label="Today at a glance" className="grid gap-6 rounded-lg border border-sage-edge/50 bg-sage-wash p-6 shadow-pop md:p-8">
+    <section aria-label="Today at a glance" className="grid gap-6 rounded-lg border border-line bg-raised p-6 shadow-pop md:p-8">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <span className="tabular font-display text-2xl text-accent">{format(now, 'd')}</span>
         <div className="grid gap-1">
@@ -97,7 +94,7 @@ function Hero({ todays, overdueCount, streak, doneThisWeek }: HeroProps) {
             aria-valuemin={0}
             aria-valuemax={todays.length}
             aria-valuenow={done}
-            className="h-2 overflow-hidden rounded-full bg-sage-edge/45"
+            className="h-2 overflow-hidden rounded-full bg-sunken"
           >
             <div
               className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
@@ -113,10 +110,7 @@ function Hero({ todays, overdueCount, streak, doneThisWeek }: HeroProps) {
             Up next: <span className="font-medium text-fg">{next.task.title}</span> at {formatTime(next.task.dueTime ?? '')}
           </Fact>
         )}
-        <span className="inline-flex items-center gap-2 rounded-full border border-mustard-edge/50 bg-mustard-wash px-3 py-0.5 text-fg">
-          <Icon icon={Flame} size={16} className="text-mustard-ink" />
-          {streak > 0 ? `${streak}-day streak` : 'Start a streak today'}
-        </span>
+        <Fact icon={Flame}>{streak > 0 ? `${streak}-day streak` : 'Start a streak today'}</Fact>
         <Fact icon={CheckCheck}>{doneThisWeek} done this week</Fact>
       </div>
     </section>
@@ -151,7 +145,7 @@ function WeekStrip({ weekStart, today, selected, occurrences, onSelect, onShift 
           <Button variant="ghost" size="sm" icon={ChevronRight} aria-label="Next week" onClick={() => onShift(1)} />
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1 rounded-lg border border-mustard-edge/40 bg-mustard-wash p-1">
+      <div className="grid grid-cols-7 gap-1 rounded-lg border border-line bg-panel p-1">
         {days.map((day) => {
           const onDay = occurrences.filter((occ) => occ.date === day)
           const open = onDay.filter((occ) => !occ.done).length
@@ -163,7 +157,7 @@ function WeekStrip({ weekStart, today, selected, occurrences, onSelect, onShift 
               aria-pressed={isSelected}
               aria-label={`${format(fromDateStr(day), 'EEEE, MMMM d')}: ${plural(open, 'open task')}`}
               onClick={() => onSelect(day)}
-              className="relative flex flex-col items-center gap-1 rounded-md py-3 transition-colors hover:bg-raised/50"
+              className="relative flex flex-col items-center gap-1 rounded-md py-3 transition-colors hover:bg-sunken"
             >
               {isSelected && (
                 <motion.span

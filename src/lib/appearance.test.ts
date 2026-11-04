@@ -33,19 +33,15 @@ describe('appearance', () => {
   })
 })
 
-describe('section colors', () => {
+describe('frame and overdue colors', () => {
   const rgb = (triplet: string) => triplet.split(' ').map(Number) as [number, number, number]
   const looks = [...PRESETS.map((p) => p.value), ...Object.keys(ACCENTS).map((accent) => ({ ...DEFAULT_APPEARANCE, accent: accent as AccentKey }))]
 
-  it('keeps text readable on every wash and on the frame, in every preset and mode', () => {
+  it('keeps overdue and frame text readable in every preset and mode', () => {
     for (const look of looks) {
       for (const mode of ['light', 'dark'] as const) {
         const t = tokensFor(look, mode)
-        for (const hue of ['sage', 'mustard', 'vermilion']) {
-          const wash = rgb(t[`${hue}-wash`]!)
-          expect(contrast(rgb(t.fg!), wash)).toBeGreaterThanOrEqual(4.5)
-          expect(contrast(rgb(t[`${hue}-ink`]!), wash)).toBeGreaterThanOrEqual(4.5)
-        }
+        expect(contrast(rgb(t.fg!), rgb(t['overdue-soft']!))).toBeGreaterThanOrEqual(4.5)
         expect(contrast(rgb(t.overdue!), rgb(t.raised!))).toBeGreaterThanOrEqual(4.5)
         expect(contrast(rgb(t['frame-fg']!), rgb(t.frame!))).toBeGreaterThanOrEqual(4.5)
       }

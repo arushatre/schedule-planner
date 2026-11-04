@@ -56,16 +56,9 @@ export function useTheme() {
     accentFg: c('accent-fg'),
     overdue: c('overdue'),
     overdueSoft: c('overdue-soft'),
-    // Section colors (see src/lib/appearance.ts): quiet washes, 3px edges, text-safe inks.
+    // The navy frame (phone header, sign-in title block); see src/lib/appearance.ts.
     frame: c('frame'),
     frameFg: c('frame-fg'),
-    sageWash: c('sage-wash'),
-    sageEdge: c('sage-edge'),
-    mustardWash: c('mustard-wash'),
-    mustardEdge: c('mustard-edge'),
-    vermilionWash: c('vermilion-wash'),
-    vermilionEdge: c('vermilion-edge'),
-    edge: (key: 'sage' | 'mustard' | 'vermilion', alpha: number) => rgb(t[`${key}-edge`] ?? '0 0 0', alpha),
     category: (key: PaletteKey) => rgb(CATEGORY[mode][key]),
     radius: (px: number) => px * radius,
     serif: ['fraunces', 'newYork'].includes(prefs.appearance.displayFont) ? SERIF : undefined,

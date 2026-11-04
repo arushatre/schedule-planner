@@ -74,7 +74,6 @@ export function MonthGrid({ cursor, today }: { cursor: string; today: string }) 
                 'group relative flex min-h-[4.5rem] flex-col gap-1 border-b border-r border-line p-1 md:min-h-[8rem] md:p-1.5',
                 (index + 1) % 7 === 0 && 'border-r-0',
                 !inMonth && 'bg-panel/60',
-                isToday && 'bg-sage-wash/70',
               )}
             >
               <div className="flex items-center justify-between">

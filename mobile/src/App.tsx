@@ -113,7 +113,7 @@ function Shell() {
                 alignItems: 'center',
                 paddingVertical: 12,
                 borderRadius: theme.radius(10),
-                backgroundColor: tab === item.tab ? theme.sageWash : 'transparent',
+                backgroundColor: tab === item.tab ? theme.sunken : 'transparent',
               }}
             >
               <Text size="sm" weight={tab === item.tab ? '600' : '400'} tone={tab === item.tab ? 'fg' : 'muted'}>

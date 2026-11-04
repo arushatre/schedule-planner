@@ -74,13 +74,12 @@ function NavButton({ item, active, onFrame, onSelect }: { item: NavItem; active:
       className={cx(
         'flex items-center gap-3 rounded-md border px-3 py-2 text-base transition-colors',
         'max-md:flex-1 max-md:flex-col max-md:gap-1 max-md:text-xs',
-        // On the navy sidebar the active page is a soft sage chip; the phone bar uses the sage wash.
         onFrame
           ? active
-            ? 'border-transparent bg-sage-edge/20 font-medium text-frame-fg'
+            ? 'border-transparent bg-frame-fg/10 font-medium text-frame-fg'
             : 'border-transparent text-frame-fg/70 hover:bg-frame-fg/10 hover:text-frame-fg'
           : active
-            ? 'border-transparent bg-sage-wash font-medium text-fg'
+            ? 'border-transparent bg-sunken font-medium text-fg'
             : 'border-transparent text-fg-muted hover:bg-sunken hover:text-fg',
       )}
     >

@@ -39,9 +39,6 @@ const config: Config = {
         fg: v('accent-fg'),
       },
       frame: { DEFAULT: v('frame'), fg: v('frame-fg') },
-      sage: { wash: v('sage-wash'), edge: v('sage-edge'), ink: v('sage-ink') },
-      mustard: { wash: v('mustard-wash'), edge: v('mustard-edge'), ink: v('mustard-ink') },
-      vermilion: { wash: v('vermilion-wash'), edge: v('vermilion-edge'), ink: v('vermilion-ink') },
       overdue: {
         DEFAULT: v('overdue'),
         soft: v('overdue-soft'),

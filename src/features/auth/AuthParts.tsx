@@ -16,9 +16,9 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="overflow-hidden rounded-lg border border-line bg-raised shadow-pop">
-          {/* Navy band (the app's frame) over a white form; the badge carries the sage of "today". */}
+          {/* Navy band (the app's frame) over a white form. */}
           <div className="flex flex-col items-center bg-frame px-6 pb-7 pt-9 text-center text-frame-fg sm:px-8">
-            <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-md border border-sage-edge/60 bg-sage-wash text-sage-ink">
+            <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-md border border-frame-fg/20 bg-frame-fg/10 text-frame-fg">
               <Icon icon={CalendarCheck} size={22} />
             </span>
             <div className="mb-1 font-display text-md text-frame-fg/75">Daybook</div>

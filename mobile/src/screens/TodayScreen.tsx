@@ -108,15 +108,15 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}
       >
-        {/* The day's card: the sage wash marks "today and progress" (same role as the web hero). */}
+        {/* The day's card: date, greeting and progress together, like the web hero. */}
         <View
           style={{
             marginTop: 8,
             padding: 18,
             gap: 14,
-            backgroundColor: theme.sageWash,
+            backgroundColor: theme.raised,
             borderWidth: 1,
-            borderColor: theme.edge('sage', 0.5),
+            borderColor: theme.line,
             borderRadius: theme.radius(16),
           }}
         >
@@ -137,7 +137,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
               style={{
                 height: 6,
                 borderRadius: 3,
-                backgroundColor: theme.edge('sage', 0.45),
+                backgroundColor: theme.sunken,
                 overflow: 'hidden',
               }}
             >

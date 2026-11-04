@@ -98,16 +98,8 @@ function hsl(h: number, s: number, l: number): Rgb {
 const mix = (a: Rgb, b: Rgb, t: number): Rgb => a.map((v, i) => Math.round(v + (b[i]! - v) * t)) as Rgb
 const css = (rgb: Rgb) => rgb.join(' ')
 
-/**
- * Supporting hues (Serene Nature), one job each: sage = today and progress, mustard = what's ahead,
- * vermilion = overdue. They only appear as quiet washes on large areas, thin edges, or text-safe inks;
- * never as bright fills on small marks.
- */
-export const HUES = { sage: [168, 216, 185], mustard: [246, 213, 92], vermilion: [237, 85, 59] } satisfies Record<string, Rgb>
-export type HueKey = keyof typeof HUES
-
-// Wash strength per hue, light / dark: the Today card carries the most color, bands stay faint.
-const WASH: Record<HueKey, [number, number]> = { sage: [0.26, 0.14], mustard: [0.16, 0.08], vermilion: [0.09, 0.12] }
+// Serene Nature's vermilion means one thing everywhere: overdue.
+const VERMILION: Rgb = [237, 85, 59]
 
 const channel = (v: number) => {
   const c = v / 255
@@ -139,19 +131,11 @@ export function tokensFor(look: Appearance, mode: 'light' | 'dark'): Record<stri
   const light = mode === 'light'
   const canvas = light ? n(sat, 96) : n(sat + 6, 9)
   const raised = light ? n(sat, 99.5) : n(sat + 6, 16)
-  const hues: Record<string, string> = {}
-  for (const key of Object.keys(HUES) as HueKey[]) {
-    const wash = mix(raised, HUES[key], WASH[key][light ? 0 : 1])
-    hues[`${key}-wash`] = css(wash)
-    hues[`${key}-edge`] = css(HUES[key])
-    hues[`${key}-ink`] = css(inkOn(HUES[key], wash, light))
-  }
   // The frame (web sidebar, phone header) is the preset's accent as a deep, solid surface in both modes.
   const frame = light ? ACCENTS[look.accent].light : mix(ACCENTS[look.accent].light, [0, 0, 0], 0.3)
   return {
-    ...hues,
-    overdue: css(inkOn(HUES.vermilion, raised, light)),
-    'overdue-soft': hues['vermilion-wash']!,
+    overdue: css(inkOn(VERMILION, raised, light)),
+    'overdue-soft': css(mix(raised, VERMILION, light ? 0.09 : 0.12)),
     frame: css(frame),
     'frame-fg': css([241, 241, 241]),
     canvas: css(canvas),
