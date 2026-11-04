@@ -13,6 +13,8 @@ export interface Accent {
   label: string
   light: Rgb
   dark: Rgb
+  /** Progress bars and the schedule's now line; defaults to the accent. */
+  highlight?: { light: Rgb; dark: Rgb }
 }
 
 export interface FontChoice {
@@ -21,6 +23,8 @@ export interface FontChoice {
 }
 
 export const TONES = {
+  // Midnight & Bronze: cool porcelain #F2F4F7 in light, deep midnight #0E131B in dark.
+  midnight: { label: 'Midnight', hue: 216, sat: 22 },
   cloud: { label: 'Cloud', hue: 214, sat: 5 },
   porcelain: { label: 'Porcelain', hue: 215, sat: 22 },
   harbor: { label: 'Harbor', hue: 205, sat: 32 },
@@ -30,6 +34,13 @@ export const TONES = {
 } satisfies Record<string, Tone>
 
 export const ACCENTS = {
+  // Midnight ink #121A26 buttons in light; bronze #C4A06A in dark. Bronze also marks progress and "now".
+  bronze: {
+    label: 'Midnight & bronze',
+    light: [18, 26, 38],
+    dark: [196, 160, 106],
+    highlight: { light: [168, 132, 80], dark: [196, 160, 106] },
+  },
   // Serene Nature: #1D3557 navy in light mode; #A8D8B9 sage in dark, where navy would vanish.
   navy: { label: 'Navy & sage', light: [29, 53, 87], dark: [168, 216, 185] },
   cobalt: { label: 'Cobalt', light: [37, 74, 168], dark: [138, 168, 236] },
@@ -68,8 +79,8 @@ export interface Appearance {
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
-  tone: 'cloud',
-  accent: 'navy',
+  tone: 'midnight',
+  accent: 'bronze',
   displayFont: 'fraunces',
   bodyFont: 'instrument',
   radius: 'soft',
@@ -77,7 +88,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
 }
 
 export const PRESETS: { label: string; value: Appearance }[] = [
-  { label: 'Serene Nature', value: DEFAULT_APPEARANCE },
+  { label: 'Midnight & Bronze', value: DEFAULT_APPEARANCE },
+  { label: 'Serene Nature', value: { ...DEFAULT_APPEARANCE, tone: 'cloud', accent: 'navy' } },
   { label: 'Cobalt & Porcelain', value: { ...DEFAULT_APPEARANCE, tone: 'porcelain', accent: 'cobalt' } },
   { label: 'Jade Atelier', value: { ...DEFAULT_APPEARANCE, tone: 'mist', accent: 'jade' } },
   { label: 'Midnight Brass', value: { ...DEFAULT_APPEARANCE, tone: 'harbor', accent: 'brass', displayFont: 'newYork' } },
@@ -131,13 +143,16 @@ export function tokensFor(look: Appearance, mode: 'light' | 'dark'): Record<stri
   const light = mode === 'light'
   const canvas = light ? n(sat, 96) : n(sat + 6, 9)
   const raised = light ? n(sat, 99.5) : n(sat + 6, 16)
-  // The frame (web sidebar, phone header) is the preset's accent as a deep, solid surface in both modes.
-  const frame = light ? ACCENTS[look.accent].light : mix(ACCENTS[look.accent].light, [0, 0, 0], 0.3)
+  const fg = light ? n(sat + 20, 13) : n(sat, 94)
+  // The frame (web sidebar, phone header) is a quiet neutral rail, never a colored band.
+  const frame = light ? n(sat, 98) : n(sat + 6, 11)
+  const highlight = (ACCENTS[look.accent] as Accent).highlight?.[mode] ?? accent
   return {
     overdue: css(inkOn(VERMILION, raised, light)),
     'overdue-soft': css(mix(raised, VERMILION, light ? 0.09 : 0.12)),
     frame: css(frame),
-    'frame-fg': css([241, 241, 241]),
+    'frame-fg': css(fg),
+    highlight: css(highlight),
     canvas: css(canvas),
     'canvas-top': css(light ? n(sat, 98.5) : n(sat + 8, 13)),
     'canvas-bottom': css(light ? n(sat, 92) : n(sat + 6, 6)),
@@ -146,7 +161,7 @@ export function tokensFor(look: Appearance, mode: 'light' | 'dark'): Record<stri
     sunken: css(light ? n(sat, 90.5) : n(sat + 6, 7)),
     line: css(light ? n(sat, 86) : n(sat + 4, 22)),
     'line-strong': css(light ? n(sat, 72) : n(sat + 4, 33)),
-    fg: css(light ? n(sat + 20, 13) : n(sat, 94)),
+    fg: css(fg),
     'fg-muted': css(light ? n(sat, 36) : n(sat, 74)),
     'fg-subtle': css(light ? n(sat, 50) : n(sat, 56)),
     accent: css(accent),

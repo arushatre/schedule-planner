@@ -1,7 +1,6 @@
 import { format, startOfWeek } from 'date-fns'
 import { motion } from 'framer-motion'
-import { CheckCheck, ChevronLeft, ChevronRight, CircleAlert, Clock, Flame, Sparkles } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, ChevronDown, Clock, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
@@ -10,15 +9,21 @@ import { TaskRow } from '@/components/task/TaskRow'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
+import { useTaskActions } from '@/hooks/useTaskActions'
 import { cx } from '@/lib/cx'
 import { WEEK_OPTIONS, formatTime, friendlyDate, fromDateStr, shiftDate, toDateStr, todayStr } from '@/lib/dates'
+import { readStored, writeStored } from '@/lib/persist'
 import { compareByDue, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
 import { computeStats } from '@/lib/stats'
+import { categoryFor } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import type { Occurrence } from '@/types/model'
+import { Schedule } from './Schedule'
+import { StreakButton } from './StreakButton'
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
+const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
 
 function greeting(hour: number): string {
   if (hour < 12) return 'Good morning'
@@ -26,93 +31,82 @@ function greeting(hour: number): string {
   return 'Good evening'
 }
 
-function Section({ title, count, tone, children }: { title: string; count?: number; tone?: 'overdue'; children: ReactNode }) {
-  const overdue = tone === 'overdue'
+function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
     <section aria-label={title}>
-      <h2 className="mb-3 flex items-center gap-2 font-display text-lg">
-        {overdue && <Icon icon={CircleAlert} size={18} className="text-overdue" />}
-        <span className={overdue ? 'text-overdue' : undefined}>{title}</span>
-        {count !== undefined && <span className="tabular font-sans text-base text-fg-subtle">{count}</span>}
+      <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-fg-muted">
+        {title}
+        {count !== undefined && <span className="tabular font-medium text-fg-subtle">{count}</span>}
       </h2>
       {children}
     </section>
   )
 }
 
-function Fact({ icon, children }: { icon: LucideIcon; children: ReactNode }) {
+/** A small ring in the highlight color: how much of today is done. */
+function ProgressRing({ done, total }: { done: number; total: number }) {
+  const r = 6
+  const c = 2 * Math.PI * r
   return (
-    <span className="inline-flex items-center gap-2">
-      <Icon icon={icon} size={18} className="text-fg-subtle" />
-      {children}
-    </span>
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden className="-rotate-90">
+      <circle cx="8" cy="8" r={r} fill="none" strokeWidth="2.5" className="stroke-line" />
+      <circle
+        cx="8"
+        cy="8"
+        r={r}
+        fill="none"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        className="stroke-highlight transition-[stroke-dashoffset] duration-200"
+        strokeDasharray={c}
+        strokeDashoffset={total === 0 ? c : c * (1 - done / total)}
+      />
+    </svg>
   )
 }
 
-interface HeroProps {
-  todays: Occurrence[]
-  overdueCount: number
-  streak: number
-  doneThisWeek: number
+function NextUp({ occ }: { occ: Occurrence }) {
+  const categories = useTasksStore((state) => state.categories)
+  const { setDone } = useTaskActions()
+  const category = categoryFor(occ.task.categoryId, categories)
+  return (
+    <section aria-label="Next up" className="flex items-center gap-4 rounded-lg border border-line bg-raised px-5 py-4 shadow-card">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-fg-muted">Next up{occ.task.dueTime ? ` · ${formatTime(occ.task.dueTime)}` : ''}</p>
+        <p className="truncate font-display text-lg">{occ.task.title}</p>
+        <p className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-fg-muted">
+          <span className="h-2 w-2 rounded-full" style={{ background: `rgb(var(--cat-${category.colorKey}))` }} />
+          {category.name}
+        </p>
+      </div>
+      <Button variant="secondary" size="sm" icon={Check} onClick={() => void setDone(occ, true)}>
+        Mark done
+      </Button>
+    </section>
+  )
 }
 
-/** Big date, a one-line read of the day, and progress: the first thing you see each morning. */
-function Hero({ todays, overdueCount, streak, doneThisWeek }: HeroProps) {
-  const now = new Date()
-  const nowTime = format(now, 'HH:mm')
-  const done = todays.filter((occ) => occ.done).length
-  const left = todays.length - done
-  const next = todays.find((occ) => !occ.done && occ.task.dueTime !== null && occ.task.dueTime >= nowTime)
-
-  let summary = 'Nothing planned today.'
-  if (todays.length > 0) summary = left === 0 ? 'Everything’s done for today.' : `${plural(left, 'task')} left today.`
-  if (overdueCount > 0) summary += ` ${plural(overdueCount, 'overdue task')} to catch up on.`
-
+/** Only rendered when something is overdue; collapses and remembers that choice. */
+function OverdueDropdown({ overdue }: { overdue: Occurrence[] }) {
+  const [open, setOpen] = useState(() => readStored(OVERDUE_OPEN_KEY) !== 'false')
+  const toggle = () => {
+    writeStored(OVERDUE_OPEN_KEY, String(!open))
+    setOpen(!open)
+  }
   return (
-    <section aria-label="Today at a glance" className="grid gap-6 rounded-lg border border-line bg-raised p-6 shadow-pop md:p-8">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <span className="tabular font-display text-2xl text-accent">{format(now, 'd')}</span>
-        <div className="grid gap-1">
-          <p className="text-md text-fg-muted">{format(now, 'EEEE, MMMM')}</p>
-          <p className="font-display text-lg">
-            {greeting(now.getHours())}. {summary}
-          </p>
-        </div>
-      </div>
-
-      {todays.length > 0 && (
-        <div className="grid gap-2">
-          <div className="flex justify-between text-base">
-            <span className="text-fg-muted">Today’s progress</span>
-            <span className="tabular font-medium">
-              {done} of {todays.length} done
-            </span>
-          </div>
-          <div
-            role="progressbar"
-            aria-label="Today’s progress"
-            aria-valuemin={0}
-            aria-valuemax={todays.length}
-            aria-valuenow={done}
-            className="h-2 overflow-hidden rounded-full bg-sunken"
-          >
-            <div
-              className="h-full rounded-full bg-accent transition-[width] duration-200 ease-out"
-              style={{ width: `${(done / todays.length) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-wrap gap-x-8 gap-y-2 text-base text-fg-muted">
-        {next && (
-          <Fact icon={Clock}>
-            Up next: <span className="font-medium text-fg">{next.task.title}</span> at {formatTime(next.task.dueTime ?? '')}
-          </Fact>
-        )}
-        <Fact icon={Flame}>{streak > 0 ? `${streak}-day streak` : 'Start a streak today'}</Fact>
-        <Fact icon={CheckCheck}>{doneThisWeek} done this week</Fact>
-      </div>
+    <section aria-label="Overdue">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        className="mb-3 flex w-full items-center gap-2 rounded-md text-sm font-semibold uppercase tracking-wide text-fg"
+      >
+        <Icon icon={Clock} size={16} />
+        Overdue
+        <span className="tabular font-medium text-fg-subtle">{overdue.length}</span>
+        <Icon icon={ChevronDown} size={16} className={cx('ml-auto text-fg-muted transition-transform duration-200', !open && '-rotate-90')} />
+      </button>
+      {open && <TaskList occs={overdue} />}
     </section>
   )
 }
@@ -217,8 +211,13 @@ export function TodayView() {
     }
   }, [tasks, today, weekStart])
 
-  const selectedDay = selected === today ? todays : byDue(week.filter((occ) => occ.date === selected))
-  const selectedLabel = selected === today ? 'Today' : friendlyDate(selected, today)
+  const isToday = selected === today
+  const selectedDay = isToday ? todays : byDue(week.filter((occ) => occ.date === selected))
+  const selectedLabel = isToday ? 'Tasks' : friendlyDate(selected, today)
+  const doneToday = todays.filter((occ) => occ.done).length
+  const nowTime = format(new Date(), 'HH:mm')
+  const open = todays.filter((occ) => !occ.done)
+  const next = open.find((occ) => occ.task.dueTime !== null && occ.task.dueTime >= nowTime) ?? open[0]
 
   const upcomingByDate = new Map<string, Occurrence[]>()
   for (const occ of upcoming) {
@@ -233,8 +232,22 @@ export function TodayView() {
   }
 
   return (
-    <div className="grid gap-10">
-      <Hero todays={todays} overdueCount={overdue.length} streak={stats.streak} doneThisWeek={stats.doneThisWeek} />
+    <div className="grid gap-8">
+      <section aria-label="Today at a glance">
+        <h2 className="font-display text-xl">{greeting(new Date().getHours())}.</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-fg-muted">
+          <span className="inline-flex items-center gap-2">
+            <ProgressRing done={doneToday} total={todays.length} />
+            <span>
+              <b className="font-semibold text-fg">{doneToday} of {todays.length}</b> done today
+            </span>
+          </span>
+          <StreakButton />
+          <span>
+            <b className="font-semibold text-fg">{stats.doneThisWeek}</b> done this week
+          </span>
+        </div>
+      </section>
 
       <WeekStrip
         weekStart={weekStart}
@@ -245,45 +258,50 @@ export function TodayView() {
         onShift={shiftWeek}
       />
 
-      {overdue.length > 0 && (
-        <Section title="Overdue" count={overdue.length} tone="overdue">
-          <TaskList occs={overdue} />
-        </Section>
-      )}
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+        <div className="grid gap-8">
+          {isToday && next && <NextUp occ={next} />}
 
-      <Section title={selectedLabel} count={selectedDay.length}>
-        <div className="grid gap-3">
-          <QuickAdd dueDate={selected} label={selected === today ? 'Add a task for today' : `Add a task for ${selectedLabel}`} />
-          {selectedDay.length === 0 ? (
-            <div className="rounded-lg border border-line bg-raised shadow-card">
-              <EmptyState
-                icon={Sparkles}
-                title={selected === today ? 'Nothing due today' : `Nothing planned for ${selectedLabel}`}
-                description="Enjoy the space, or add something above."
-              />
+          <Section title={selectedLabel} count={selectedDay.length}>
+            <div className="grid gap-3">
+              <QuickAdd dueDate={selected} label={isToday ? 'Add a task for today' : `Add a task for ${selectedLabel}`} />
+              {selectedDay.length === 0 ? (
+                <div className="rounded-lg border border-line bg-raised shadow-card">
+                  <EmptyState
+                    icon={Sparkles}
+                    title={isToday ? 'Nothing due today' : `Nothing planned for ${selectedLabel}`}
+                    description="Enjoy the space, or add something above."
+                  />
+                </div>
+              ) : (
+                <TaskList occs={selectedDay} hideDate />
+              )}
             </div>
-          ) : (
-            <TaskList occs={selectedDay} hideDate />
+          </Section>
+
+          {isToday && (
+            <Section title="Next 7 days" count={upcoming.length}>
+              {upcoming.length === 0 ? (
+                <p className="text-base text-fg-muted">Nothing scheduled for the coming week.</p>
+              ) : (
+                <div className="grid gap-6">
+                  {[...upcomingByDate.entries()].map(([date, occs]) => (
+                    <div key={date}>
+                      <h3 className="mb-2 text-base font-medium text-fg-muted">{friendlyDate(date, today)}</h3>
+                      <TaskList occs={occs} hideDate />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Section>
           )}
         </div>
-      </Section>
 
-      {selected === today && (
-        <Section title="Next 7 days" count={upcoming.length}>
-          {upcoming.length === 0 ? (
-            <p className="text-base text-fg-muted">Nothing scheduled for the coming week.</p>
-          ) : (
-            <div className="grid gap-6">
-              {[...upcomingByDate.entries()].map(([date, occs]) => (
-                <div key={date}>
-                  <h3 className="mb-2 text-base font-medium text-fg-muted">{friendlyDate(date, today)}</h3>
-                  <TaskList occs={occs} hideDate />
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
+        <div className="grid gap-8">
+          {overdue.length > 0 && <OverdueDropdown overdue={overdue} />}
+          <Schedule date={selected} occs={selectedDay} />
+        </div>
+      </div>
     </div>
   )
 }

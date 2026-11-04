@@ -1,3 +1,4 @@
+import { format } from 'date-fns'
 import {
   CalendarCheck,
   CalendarDays,
@@ -130,7 +131,7 @@ export function App() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col bg-frame p-4 text-frame-fg shadow-pop md:flex">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-line bg-frame p-4 text-frame-fg md:flex">
         <div className="mb-6 px-3 pt-1 font-display text-lg">Daybook</div>
         <nav aria-label="Primary" className="flex flex-col gap-1">
           {NAV.map((item) => (
@@ -149,7 +150,15 @@ export function App() {
 
       <main className="min-w-0 flex-1 px-4 pb-28 pt-6 md:px-10 md:pb-10 md:pt-10">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-3">
-          <h1 className="font-display text-xl">{current?.label}</h1>
+          {view === 'today' ? (
+            // Today's greeting is its own heading; the bar just carries the date.
+            <div>
+              <h1 className="sr-only">Today</h1>
+              <p className="text-sm uppercase tracking-wide text-fg-muted">{format(new Date(), 'EEEE, MMMM d')}</p>
+            </div>
+          ) : (
+            <h1 className="font-display text-xl">{current?.label}</h1>
+          )}
           {ready && !error && view !== 'kit' && (
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="sm" icon={Tags} onClick={() => openDialog('categories')}>

@@ -1,3 +1,4 @@
+import { differenceInCalendarDays } from 'date-fns'
 import { Bell, ClockAlert, Repeat } from 'lucide-react'
 
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -5,9 +6,9 @@ import { Icon } from '@/components/ui/Icon'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { useTaskFocus } from '@/hooks/useTaskFocus'
 import { cx } from '@/lib/cx'
-import { formatTime, friendlyDate, todayStr } from '@/lib/dates'
+import { formatTime, friendlyDate, fromDateStr, todayStr } from '@/lib/dates'
 import { isOverdue, isRecurring } from '@/lib/recurrence'
-import { categoryFor, subtaskProgress } from '@/lib/tasks'
+import { UNCATEGORIZED, categoryFor, subtaskProgress } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { Occurrence } from '@/types/model'
@@ -31,21 +32,23 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
 
   const { task } = occ
   const category = categoryFor(task.categoryId, categories)
-  const overdue = isOverdue(occ, todayStr())
+  const today = todayStr()
+  const overdue = isOverdue(occ, today)
+  const daysLate = overdue && occ.date ? differenceInCalendarDays(fromDateStr(today), fromDateStr(occ.date)) : 0
+  const tinted = category !== UNCATEGORIZED
   const progress = subtaskProgress(task)
 
   return (
     <div
       {...focusHandlers}
+      // A light wash of the category color; uncategorized tasks keep the plain card.
+      style={tinted && !selected ? { background: `color-mix(in srgb, rgb(var(--cat-${category.colorKey})) var(--tint), rgb(var(--raised)))` } : undefined}
       className={cx(
-        'relative flex items-start gap-3 overflow-hidden rounded-md border py-2.5 pl-4 pr-3 shadow-card transition-colors',
-        overdue
-          ? 'border-overdue/30 bg-overdue-soft/60 hover:border-overdue/50'
-          : 'border-line bg-raised hover:border-line-strong',
+        'relative flex items-start gap-3 overflow-hidden rounded-md border border-line bg-raised py-2.5 pl-4 pr-3 shadow-card transition-colors hover:border-line-strong',
+        overdue && 'shadow-[inset_2px_0_0_rgb(var(--fg))]',
         selected && 'border-accent/50 bg-accent-soft/50',
       )}
     >
-      {overdue && <span aria-hidden="true" className="overdue-edge absolute inset-y-0 left-0 w-1.5" />}
       {selectable && (
         <Checkbox
           checked={selected}
@@ -74,16 +77,12 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
             {category.name}
           </span>
           {occ.date && !hideDate && (
-            <span className={cx('inline-flex items-center gap-1', overdue && 'font-medium text-overdue')}>
-              {overdue && <Icon icon={ClockAlert} size={14} />}
-              {overdue ? 'Overdue · ' : ''}
-              {friendlyDate(occ.date)}
-            </span>
+            <span className="inline-flex items-center gap-1">{friendlyDate(occ.date)}</span>
           )}
-          {occ.date && hideDate && overdue && (
-            <span className="inline-flex items-center gap-1 font-medium text-overdue">
+          {overdue && (
+            <span className="inline-flex items-center gap-1 font-semibold text-fg">
               <Icon icon={ClockAlert} size={14} />
-              Overdue
+              {daysLate}d late
             </span>
           )}
           {task.dueTime && <span className="tabular">{formatTime(task.dueTime)}</span>}

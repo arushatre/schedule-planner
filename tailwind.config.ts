@@ -39,6 +39,8 @@ const config: Config = {
         fg: v('accent-fg'),
       },
       frame: { DEFAULT: v('frame'), fg: v('frame-fg') },
+      highlight: v('highlight'),
+      ember: v('ember'),
       overdue: {
         DEFAULT: v('overdue'),
         soft: v('overdue-soft'),

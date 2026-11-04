@@ -7,6 +7,10 @@
 @layer base {
   :root {
     --inset-highlight: rgb(255 255 255 / 0.65);
+    /* How strongly a task row is washed with its category color. */
+    --tint: 12%;
+    /* The streak's reddish-orange fire: the one warm color outside the category palette. */
+    --ember: 196 82 44;
 
     /* Curated category palette: muted, desaturated, never neon. */
     --cat-clay: 186 112 100;
@@ -24,6 +28,8 @@
   :root[data-theme='dark'] {
     color-scheme: dark;
     --inset-highlight: rgb(255 255 255 / 0.05);
+    --tint: 15%;
+    --ember: 232 124 84;
 
     --cat-clay: 212 142 128;
     --cat-moss: 168 216 185;
@@ -95,7 +101,45 @@
 }
 
 @layer components {
+  /* Streak: ember from day one, quiet at first and livelier as it grows (tiers from src/lib/activity.ts). */
+  .streak { color: rgb(var(--ember)); transition: background-color 150ms; }
+  .streak:hover { background: rgb(var(--ember) / 0.08); }
+  .streak-t0 { color: rgb(var(--fg-muted)); }
+  .streak-fire { display: inline-block; font-size: 0.95em; line-height: 1; transition: transform 200ms ease-out; }
+  .streak-t0 .streak-fire { filter: grayscale(1); opacity: 0.6; }
+  .streak:hover .streak-fire { transform: rotate(-8deg); }
+  .streak-t3 .streak-text,
+  .streak-t4 .streak-text {
+    background-image: linear-gradient(90deg, #e8a33c, #e2622b, #c8341f, #e2622b, #e8a33c);
+    background-size: 220% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .streak-t3:hover .streak-text { animation: streak-shimmer 2.4s linear infinite; }
+  .streak-t3:hover .streak-fire { animation: streak-flicker 0.8s ease-in-out infinite; }
+  .streak-t4 .streak-text { animation: streak-shimmer 3s linear infinite; font-weight: 600; }
+  .streak-t4:hover .streak-fire { animation: streak-flicker 0.5s ease-in-out infinite; }
+  .streak-tag { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  /* Tiny fireworks: two small bursts of 2px sparks above the button, only while hovering. */
+  .streak-fireworks { position: absolute; inset: 0; pointer-events: none; }
+  .streak-fireworks i {
+    position: absolute; top: 2px; left: 18%; width: 2px; height: 2px; border-radius: 9999px;
+    background: rgb(var(--ember)); opacity: 0;
+  }
+  .streak-fireworks i:nth-child(2n) { left: 78%; background: #e8a33c; }
+  .streak:hover .streak-fireworks i { animation: streak-spark 900ms ease-out infinite; }
+
   /* Diagonal hatch used on the left edge of overdue chips. */
+  @keyframes streak-shimmer { from { background-position: 0% 0; } to { background-position: 220% 0; } }
+  @keyframes streak-flicker { 0%, 100% { transform: scale(1.08) rotate(-4deg); } 50% { transform: scale(1.18) rotate(4deg); } }
+  @keyframes streak-spark {
+    0% { opacity: 0; transform: translate(0, 0) scale(1); }
+    15% { opacity: 1; }
+    70% { opacity: 0.8; transform: translate(var(--dx), var(--dy)) scale(0.8); }
+    100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 3px)) scale(0.4); }
+  }
+
   .overdue-edge {
     background-image: repeating-linear-gradient(
       135deg,
