@@ -5,6 +5,8 @@ import type { BackupData } from '@/lib/backup'
 import { isRecurring } from '@/lib/recurrence'
 import { makeTask } from '@/lib/tasks'
 import type { PaletteKey } from '@/lib/palette'
+import type { ActivityEvent } from '@/lib/activity'
+import type { ActivityTracker } from '@/sync/activity'
 import type { Patch, SyncEngine } from '@/sync/engine'
 import { LEGACY_ANSWERED_KEY, markLegacyImported, readLegacyData, useLegacyImport } from '@/sync/legacy'
 import { planLegacyImport } from '@/sync/records'
@@ -29,9 +31,11 @@ interface TasksState {
   tasks: Task[]
   categories: Category[]
   classBlocks: ClassBlock[]
+  /** When the user used the app (streak history). */
+  activity: ActivityEvent[]
 
   /** Boots from the signed-in user's local cache; the engine then syncs in the background. */
-  attach: (engine: SyncEngine) => Promise<void>
+  attach: (engine: SyncEngine, tracker?: ActivityTracker) => Promise<void>
   detach: () => void
   /** Merges changes the engine made on its own (pull, realtime, other tabs, rollbacks). */
   applyPatch: (patch: Patch) => void
@@ -61,6 +65,11 @@ interface TasksState {
 const EMPTY = { tasks: [], categories: [], classBlocks: [] }
 
 let engine: SyncEngine | null = null
+let tracker: ActivityTracker | null = null
+let stopActivity: (() => void) | null = null
+
+/** Any change the user makes counts as using the app; signing in alone doesn't. */
+const touch = (kind: string) => tracker?.record(kind)
 
 function sync(): SyncEngine {
   if (!engine) throw new Error('Not signed in: the sync engine is not attached.')
@@ -87,6 +96,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     const before = lookup(get().tasks)
     const stamped = tasks.map((task) => ({ ...task, updatedAt: Date.now() }))
     set((state) => ({ tasks: merge(state.tasks, stamped) }))
+    touch('task')
     await sync().save('task', stamped, before)
   }
 
@@ -98,15 +108,17 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     return task
   }
 
-  const saveCategories = async (categories: Category[]) => {
+  const saveCategories = async (categories: Category[], track = true) => {
     const before = lookup(get().categories)
     set((state) => ({ categories: merge(state.categories, categories).sort(byOrder) }))
+    if (track) touch('category')
     await sync().save('category', categories, before)
   }
 
   const saveClassBlocks = async (blocks: ClassBlock[]) => {
     const before = lookup(get().classBlocks)
     set((state) => ({ classBlocks: merge(state.classBlocks, blocks) }))
+    touch('class')
     await sync().save('classBlock', blocks, before)
   }
 
@@ -114,9 +126,14 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     ready: false,
     error: null,
     ...EMPTY,
+    activity: [],
 
-    attach: async (next) => {
+    attach: async (next, nextTracker) => {
       engine = next
+      stopActivity?.()
+      tracker = nextTracker ?? null
+      stopActivity = nextTracker ? nextTracker.subscribe(() => set({ activity: nextTracker.events() })) : null
+      set({ activity: nextTracker?.events() ?? [] })
       try {
         const { tasks, categories, classBlocks } = await next.load()
         // A newer engine may have replaced this one mid-load (StrictMode remount, account switch).
@@ -133,7 +150,10 @@ export const useTasksStore = create<TasksState>()((set, get) => {
 
     detach: () => {
       engine = null
-      set({ ready: false, error: null, ...EMPTY })
+      stopActivity?.()
+      stopActivity = null
+      tracker = null
+      set({ ready: false, error: null, ...EMPTY, activity: [] })
     },
 
     applyPatch: (patch) =>
@@ -157,6 +177,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
           createdAt: now,
           ...seed,
         })),
+        false,
       )
     },
 
@@ -195,6 +216,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     deleteTasks: async (ids) => {
       const removed = get().tasks.filter((task) => ids.includes(task.id))
       set((state) => ({ tasks: state.tasks.filter((task) => !ids.includes(task.id)) }))
+      touch('task')
       await sync().remove('task', ids, lookup(removed))
       return () => persist(removed)
     },
@@ -290,6 +312,7 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     deleteClassBlock: async (id) => {
       const removed = get().classBlocks.filter((block) => block.id === id)
       set((state) => ({ classBlocks: state.classBlocks.filter((block) => block.id !== id) }))
+      touch('class')
       await sync().remove('classBlock', [id], lookup(removed))
       return () => saveClassBlocks(removed)
     },

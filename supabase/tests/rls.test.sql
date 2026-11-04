@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(47);
+select plan(50);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (as postgres, RLS bypassed). A = 1111…, B = 2222…
@@ -42,6 +42,9 @@ insert into public.class_blocks (id, user_id, title, weekdays, start_time, end_t
   ('aaaaaaaa-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111',
    'Math', '{1,3,5}', '09:00', '09:50');
 
+insert into public.activity_events (id, user_id, at, kind) values
+  ('aaaaaaaa-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', '2026-11-04T19:40:00Z', 'task');
+
 -- ---------------------------------------------------------------------------
 -- As user B: none of A's rows are visible
 -- ---------------------------------------------------------------------------
@@ -56,6 +59,10 @@ select is((select count(*)::int from public.task_tags where user_id = '11111111-
 select is((select count(*)::int from public.task_occurrence_overrides where user_id = '11111111-1111-1111-1111-111111111111'), 0, 'B cannot read A overrides');
 select is((select count(*)::int from public.class_blocks where user_id = '11111111-1111-1111-1111-111111111111'), 0, 'B cannot read A class blocks');
 select is((select count(*)::int from public.tasks), 1, 'B sees exactly their own task');
+select is((select count(*)::int from public.activity_events), 0, 'B cannot read A activity');
+select is_empty($$ delete from public.activity_events where id = 'aaaaaaaa-0000-0000-0000-000000000006' returning id $$, 'B cannot delete A activity');
+select throws_ok($$ insert into public.activity_events (user_id, at, kind) values ('11111111-1111-1111-1111-111111111111', now(), 'task') $$,
+  '42501', null, 'B cannot log activity as A');
 
 -- Updates and deletes of A's rows silently match nothing
 select is_empty($$ update public.tasks set title = 'pwned' where id = 'aaaaaaaa-0000-0000-0000-000000000002' returning id $$, 'B cannot update A task');

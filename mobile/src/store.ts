@@ -1,9 +1,13 @@
 import { useSyncExternalStore } from 'react'
 import { Alert } from 'react-native'
+import Storage from 'expo-sqlite/kv-store'
 
 import { serializeBackup, withUuidIds } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import { isRecurring } from '@/lib/recurrence'
+import type { ActivityEvent } from '@/lib/activity'
+import { createActivityTracker } from '@/sync/activity'
+import type { ActivityTracker } from '@/sync/activity'
 import { planLegacyImport } from '@/sync/records'
 import { createSupabaseRemote } from '@/sync/remote'
 import type { Category, Occurrence, Task } from '@/types/model'
@@ -30,6 +34,8 @@ interface State extends BackupData {
   auth: 'loading' | 'signedOut' | 'signedIn'
   user: User | null
   sync: SyncStatus
+  /** When the user used the app (streak history). */
+  activity: ActivityEvent[]
 }
 
 const SEED: Pick<Category, 'name' | 'colorKey'>[] = [
@@ -40,7 +46,7 @@ const SEED: Pick<Category, 'name' | 'colorKey'>[] = [
 
 const EMPTY: BackupData = { tasks: [], categories: [], classBlocks: [] }
 
-let state: State = { ready: false, ...EMPTY, prefs: DEFAULT_PREFS, auth: 'loading', user: null, sync: IDLE }
+let state: State = { ready: false, ...EMPTY, prefs: DEFAULT_PREFS, auth: 'loading', user: null, sync: IDLE, activity: [] }
 const listeners = new Set<() => void>()
 
 function emit(next: Partial<State>): void {
@@ -55,6 +61,8 @@ interface Session {
   sync: Sync | null
   /** The pre-accounts data offer was handled this session (asked at most once per launch). */
   offered: boolean
+  activity: ActivityTracker
+  stopActivity: () => void
 }
 
 let session: Session | null = null
@@ -129,11 +137,28 @@ function afterPull(user: User, first: boolean): void {
 // Session lifecycle
 // ---------------------------------------------------------------------------
 
+const kv = { getItem: (key: string) => Storage.getItemSync(key), setItem: (key: string, value: string) => Storage.setItemSync(key, value) }
+
+/** Any change the user makes counts as using the app; signing in alone doesn't. */
+const touch = (kind: string) => session?.activity.record(kind)
+
 function startSession(user: User): void {
   const saved = readSaved(user.id)
-  const owner: Session = { user, outbox: saved.outbox, pulledAt: saved.pulledAt, sync: null, offered: false }
+  const activity = createActivityTracker(user.id, supabase, kv)
+  const owner: Session = {
+    user,
+    outbox: saved.outbox,
+    pulledAt: saved.pulledAt,
+    sync: null,
+    offered: false,
+    activity,
+    stopActivity: activity.subscribe(() => {
+      if (session === owner) emit({ activity: activity.events() })
+    }),
+  }
   session = owner
-  emit({ ...saved.data, ready: true, auth: 'signedIn', user, sync: { ...IDLE, pending: saved.outbox.length } })
+  emit({ ...saved.data, ready: true, auth: 'signedIn', user, sync: { ...IDLE, pending: saved.outbox.length }, activity: activity.events() })
+  void activity.refresh()
   owner.sync = startSync(user.id, createSupabaseRemote(supabase), {
     read: () => ({ data: dataOf(), outbox: owner.outbox }),
     write: (next) => persist(owner, next),
@@ -158,8 +183,9 @@ function startSession(user: User): void {
 
 function endSession(): void {
   session?.sync?.stop()
+  session?.stopActivity()
   session = null
-  emit({ ...EMPTY, ready: false, auth: 'signedOut', user: null, sync: IDLE })
+  emit({ ...EMPTY, ready: false, auth: 'signedOut', user: null, sync: IDLE, activity: [] })
   void cancelAll()
 }
 
@@ -205,6 +231,7 @@ export const getState = (): State => state
 
 /** Pushes pending changes and pulls the latest. Resolves (never rejects) when done; status is in `sync`. */
 export function syncNow(): Promise<void> {
+  void session?.activity.refresh()
   return session?.sync?.sync() ?? Promise.resolve()
 }
 
@@ -219,12 +246,14 @@ export async function signOut(): Promise<void> {
 export function saveTask(task: Task): void {
   const next = { ...task, updatedAt: Date.now() }
   const before = state.tasks.find((existing) => existing.id === task.id) ?? null
+  touch('task')
   commit({ ...dataOf(), tasks: upsert(state.tasks, next) }, [{ entity: 'task', id: next.id, op: 'upsert', payload: next, before }])
 }
 
 export function deleteTask(id: string): void {
   const before = state.tasks.find((task) => task.id === id)
   if (!before) return
+  touch('task')
   commit({ ...dataOf(), tasks: state.tasks.filter((task) => task.id !== id) }, [{ entity: 'task', id, op: 'delete', payload: null, before }])
 }
 
@@ -243,6 +272,7 @@ export function setDone(occ: Occurrence, done: boolean): void {
 
 /** Replaces the account's data with an imported backup (keeps current categories if it has none). */
 export function replaceAll(raw: BackupData): void {
+  touch('import')
   const change = replaceAllWith(dataOf(), withUuidIds(raw.categories.length > 0 ? raw : { ...raw, categories: state.categories }))
   commit(change.data, change.writes)
 }

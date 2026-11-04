@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useSyncStore } from '@/store/sync'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
+import { createActivityTracker } from './activity'
 import { CacheDb } from './cache'
 import type { Entity } from './cache'
 import { SyncEngine } from './engine'
@@ -35,12 +36,15 @@ export function SyncProvider({ userId, children, remote }: SyncProviderProps) {
           message: `Couldn’t save a ${ENTITY_LABEL[entity]} change, so it was undone. ${error.message}`,
         }),
     })
+    // Streak history needs the real backend; tests inject a fake remote and skip it.
+    const tracker = remote ? undefined : createActivityTracker(userId, supabase, localStorage)
     let active = true
     void useTasksStore
       .getState()
-      .attach(engine)
+      .attach(engine, tracker)
       .then(() => {
         if (active) void engine.start()
+        if (active) void tracker?.refresh()
       })
 
     // After the first successful pull (possibly long after an offline boot), the account's real

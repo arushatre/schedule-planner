@@ -23,7 +23,20 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "categories": {
+            "activity_events": {
+                  Row: {
+                    "at": string,"created_at": string,"id": string,"kind": string,"user_id": string
+                  }
+                  Insert: {
+                    "at": string,"created_at"?: string,"id"?: string,"kind": string,"user_id"?: string
+                  }
+                  Update: {
+                    "at"?: string,"created_at"?: string,"id"?: string,"kind"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"categories": {
                   Row: {
                     "archived": boolean,"color_key": Database["public"]['Enums']["palette_key"],"created_at": string,"id": string,"name": string,"sort_order": number,"updated_at": string,"user_id": string
                   }
