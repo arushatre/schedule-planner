@@ -15,7 +15,7 @@ User's standing rules:
 - Web Today (`src/features/today/`): greeting + stats line, week strip, left column Next up / Tasks / Next 7 days, right column Overdue dropdown (rendered only when something is overdue; open/closed remembered in `daybook:overdue-open`) above `Schedule.tsx` (hour grid, now line, classes dashed). Task rows get a 12%/15% category wash; overdue = thin left rule + bold "Nd late", no red.
 - Streak (`StreakButton.tsx`, phone `components/StreakSheet.tsx`): ember from day one; tiers in `streakTier()` (1, 2–5 quiet, 6–29 gradient + tiny hover fireworks, 30+ shimmer + "On fire"). Phone plays the fireworks on press (no hover). Click/tap opens the history: current/longest, 5-week grid, streak runs (started / ended / restarted after N days off), and times per day.
 - Streak data: new table `activity_events` (migration `20261105120000_activity_events.sql`, RLS tests in `rls.test.sql`). Any add/edit/check/delete logs one event (throttled to one per 5 min); signing in alone does not, nor does first-run category seeding. `src/sync/activity.ts` queues events per account offline and never throws. Streak days = activity days ∪ task-completion days. The user said the definition "might change later": change where `touch()` / `record()` is called.
-- **Hosted Supabase still needs `npx supabase db push`** for the new table. Until then, events queue locally and history shows completion days only.
+- Hosted Supabase has the `activity_events` table (pushed 2026-11-04).
 - Not done: "Focus for today" (needs a schema decision), overlapping schedule items stack instead of sitting side by side, activity is not in JSON backups, phone app still never run on a simulator (bundles with `expo export`).
 
 ## Design preview (not committed, now historical)
