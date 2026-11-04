@@ -27,7 +27,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
       - run: npm ci
+      # The phone app's sync-queue tests run in the root suite and need its packages.
+      - run: npm ci --prefix mobile
       - run: npm test
       - run: npm run build
         env:

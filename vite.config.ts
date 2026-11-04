@@ -1,10 +1,15 @@
 import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
+import { loadEnv } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
 // GitHub Pages serves the app from /schedule-planner/ (set by the deploy workflow); local dev stays at /.
 const base = process.env.VITE_BASE ?? '/'
+
+// Unit tests never reach Supabase, but the app's config gate needs both values; placeholders cover machines with
+// no .env (CI). A local .env still wins, which the integration tests rely on.
+const fileEnv = loadEnv('test', process.cwd(), 'VITE_')
 
 export default defineConfig({
   base,
@@ -43,5 +48,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    env: {
+      VITE_SUPABASE_URL: fileEnv.VITE_SUPABASE_URL || 'http://127.0.0.1:54321',
+      VITE_SUPABASE_ANON_KEY: fileEnv.VITE_SUPABASE_ANON_KEY || 'test-anon-key',
+    },
   },
 })
