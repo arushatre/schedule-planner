@@ -147,7 +147,7 @@ function ConfigError({ message }: { message: string }) {
       </Text>
       <Text tone="muted">{message}</Text>
       <Text size="sm" tone="subtle">
-        See “Accounts and sync” in mobile/README.md.
+        See “Accounts and sync” in mobile-app/README.md.
       </Text>
     </SafeAreaView>
   )

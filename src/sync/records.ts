@@ -2,7 +2,7 @@ import { withUuidIds } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import type { Category } from '@/types/model'
 
-// Pure helpers shared by the web sync engine and the phone app (mobile/src/outbox.ts), so this
+// Pure helpers shared by the web sync engine and the phone app (mobile-app/src/outbox.ts), so this
 // module must not import Dexie, zustand or anything browser-only.
 
 /** Key-order-independent comparison so identical records don't trigger re-renders. */

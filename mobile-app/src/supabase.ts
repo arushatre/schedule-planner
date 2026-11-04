@@ -16,7 +16,7 @@ export const webUrl: string | undefined = process.env.EXPO_PUBLIC_WEB_URL || und
 export const supabaseConfigError: string | null =
   url && anonKey
     ? null
-    : 'EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY is missing. Copy mobile/.env.example to mobile/.env.local, fill it in, then restart `npx expo start`.'
+    : 'EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY is missing. Copy mobile-app/.env.example to mobile-app/.env.local, fill it in, then restart `npx expo start`.'
 
 const KEEP_KEY = 'daybook:keepSignedIn'
 let keep = Storage.getItemSync(KEEP_KEY) !== 'false'

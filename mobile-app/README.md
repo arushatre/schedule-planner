@@ -56,7 +56,7 @@ re-plans whenever a task changes (here or on another device) or you open the app
 
 ## Accounts and sync
 
-The app talks to the same Supabase project as the web app. `mobile/.env.local` (gitignored) holds its address:
+The app talks to the same Supabase project as the web app. `mobile-app/.env.local` (gitignored) holds its address:
 
 | Variable | Value |
 | --- | --- |
