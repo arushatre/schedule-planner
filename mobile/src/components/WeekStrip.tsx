@@ -80,7 +80,18 @@ export function WeekStrip({ today, selected, tasks, categories, onSelect }: Prop
         <Arrow label="Next week" glyph="›" onPress={() => setStart(shiftDate(start, 7))} />
       </View>
 
-      <View style={{ flexDirection: 'row', gap: 4 }}>
+      {/* Mustard band: "the days ahead". */}
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: 4,
+          padding: 4,
+          backgroundColor: theme.mustardWash,
+          borderWidth: 1,
+          borderColor: theme.edge('mustard', 0.4),
+          borderRadius: theme.radius(14),
+        }}
+      >
         {days.map((day) => {
           const date = fromDateStr(day)
           const on = day === selected

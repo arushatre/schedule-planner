@@ -15,16 +15,19 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="rounded-lg border border-line bg-raised px-6 pb-8 pt-9 shadow-pop sm:px-8">
-          <div className="flex flex-col items-center text-center">
-            <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-md border border-accent/20 bg-accent-soft text-accent">
+        <div className="overflow-hidden rounded-lg border border-line bg-raised shadow-pop">
+          {/* Navy band (the app's frame) over a white form; the badge carries the sage of "today". */}
+          <div className="flex flex-col items-center bg-frame px-6 pb-7 pt-9 text-center text-frame-fg sm:px-8">
+            <span className="mb-5 flex h-11 w-11 items-center justify-center rounded-md border border-sage-edge/60 bg-sage-wash text-sage-ink">
               <Icon icon={CalendarCheck} size={22} />
             </span>
-            <div className="mb-1 font-display text-md text-fg-muted">Daybook</div>
-            <h1 className="text-balance font-display text-xl text-fg">{title}</h1>
-            {subtitle && <p className="mt-2 text-pretty text-base text-fg-muted">{subtitle}</p>}
+            <div className="mb-1 font-display text-md text-frame-fg/75">Daybook</div>
+            <h1 className="text-balance font-display text-xl">{title}</h1>
           </div>
-          <div className="mt-7">{children}</div>
+          <div className="px-6 pb-8 pt-6 sm:px-8">
+            {subtitle && <p className="mb-6 text-pretty text-center text-base text-fg-muted">{subtitle}</p>}
+            {children}
+          </div>
         </div>
         <p className="mt-5 text-center text-sm text-fg-subtle">Your tasks sync to your account and stay available offline.</p>
       </div>

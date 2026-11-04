@@ -65,7 +65,7 @@ const NAV: NavItem[] = [
   { view: 'kit', label: 'Customize', icon: SwatchBook },
 ]
 
-function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean; onSelect: () => void }) {
+function NavButton({ item, active, onFrame, onSelect }: { item: NavItem; active: boolean; onFrame?: boolean; onSelect: () => void }) {
   return (
     <button
       type="button"
@@ -74,9 +74,14 @@ function NavButton({ item, active, onSelect }: { item: NavItem; active: boolean;
       className={cx(
         'flex items-center gap-3 rounded-md border px-3 py-2 text-base transition-colors',
         'max-md:flex-1 max-md:flex-col max-md:gap-1 max-md:text-xs',
-        active
-          ? 'border-transparent bg-sunken font-medium text-fg'
-          : 'border-transparent text-fg-muted hover:bg-sunken hover:text-fg',
+        // On the navy sidebar the active page is a soft sage chip; the phone bar uses the sage wash.
+        onFrame
+          ? active
+            ? 'border-transparent bg-sage-edge/20 font-medium text-frame-fg'
+            : 'border-transparent text-frame-fg/70 hover:bg-frame-fg/10 hover:text-frame-fg'
+          : active
+            ? 'border-transparent bg-sage-wash font-medium text-fg'
+            : 'border-transparent text-fg-muted hover:bg-sunken hover:text-fg',
       )}
     >
       <Icon icon={item.icon} />
@@ -126,17 +131,17 @@ export function App() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-line bg-panel/80 p-4 shadow-card md:flex">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col bg-frame p-4 text-frame-fg shadow-pop md:flex">
         <div className="mb-6 px-3 pt-1 font-display text-lg">Daybook</div>
         <nav aria-label="Primary" className="flex flex-col gap-1">
           {NAV.map((item) => (
-            <NavButton key={item.view} item={item} active={item.view === view} onSelect={() => setView(item.view)} />
+            <NavButton key={item.view} item={item} active={item.view === view} onFrame onSelect={() => setView(item.view)} />
           ))}
         </nav>
         <button
           type="button"
           onClick={() => openDialog('shortcuts')}
-          className="mt-auto flex items-center justify-between rounded-md border border-transparent px-3 py-2 text-sm text-fg-muted transition-colors hover:bg-sunken hover:text-fg"
+          className="mt-auto flex items-center justify-between rounded-md border border-transparent px-3 py-2 text-sm text-frame-fg/70 transition-colors hover:bg-frame-fg/10 hover:text-frame-fg"
         >
           Keyboard shortcuts
           <Kbd>?</Kbd>

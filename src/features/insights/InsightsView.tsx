@@ -22,10 +22,17 @@ const RANGES = [
 
 type Range = (typeof RANGES)[number]['value']
 
-function Card({ icon, value, label }: { icon: LucideIcon; value: string; label: string }) {
+// Each stat tile takes one palette wash, so the row reads as three distinct, quiet blocks.
+const TILE = {
+  sage: { box: 'border-sage-edge/50 bg-sage-wash', icon: 'bg-raised/70 text-sage-ink' },
+  mustard: { box: 'border-mustard-edge/50 bg-mustard-wash', icon: 'bg-raised/70 text-mustard-ink' },
+  navy: { box: 'border-accent/20 bg-accent-soft', icon: 'bg-raised/70 text-accent' },
+}
+
+function Card({ icon, value, label, tone }: { icon: LucideIcon; value: string; label: string; tone: keyof typeof TILE }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-line bg-raised px-4 py-3 shadow-card">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent">
+    <div className={cx('flex items-center gap-3 rounded-lg border px-4 py-3 shadow-card', TILE[tone].box)}>
+      <span className={cx('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', TILE[tone].icon)}>
         <Icon icon={icon} />
       </span>
       <div className="min-w-0">
@@ -74,9 +81,9 @@ export function InsightsView() {
       ) : (
         <>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Card icon={CheckCheck} value={String(data.total)} label={`Completed in ${range} weeks`} />
-            <Card icon={Gauge} value={average.toFixed(1)} label="Average per week" />
-            <Card icon={Trophy} value={top?.category.name ?? '–'} label="Most completed category" />
+            <Card icon={CheckCheck} tone="sage" value={String(data.total)} label={`Completed in ${range} weeks`} />
+            <Card icon={Gauge} tone="mustard" value={average.toFixed(1)} label="Average per week" />
+            <Card icon={Trophy} tone="navy" value={top?.category.name ?? '–'} label="Most completed category" />
           </div>
 
           <section

@@ -50,26 +50,42 @@ function Shell() {
   const title = TABS.find((item) => item.tab === tab)?.label ?? ''
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.canvas }} edges={['top', 'left', 'right']}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8 }}>
-        <Text size="xl" display>{title}</Text>
-        {tab !== 'settings' && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="New task"
-            onPress={() => setEditing('new')}
-            style={({ pressed }) => ({
-              backgroundColor: theme.accent,
-              borderRadius: theme.radius(10),
-              paddingHorizontal: 16,
-              paddingVertical: 10,
-              opacity: pressed ? 0.85 : 1,
-            })}
-          >
-            <Text tone="accentFg" weight="600">+ New</Text>
-          </Pressable>
-        )}
-      </View>
+    <View style={{ flex: 1, backgroundColor: theme.canvas }}>
+      {/* Navy header band: the phone's version of the web's navy sidebar. */}
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ backgroundColor: theme.frame }}>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingHorizontal: 20,
+            paddingTop: 8,
+            paddingBottom: 14,
+          }}
+        >
+          <Text size="xl" display style={{ color: theme.frameFg }}>
+            {title}
+          </Text>
+          {tab !== 'settings' && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="New task"
+              onPress={() => setEditing('new')}
+              style={({ pressed }) => ({
+                backgroundColor: theme.frameFg,
+                borderRadius: theme.radius(10),
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <Text weight="600" style={{ color: theme.frame }}>
+                + New
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </SafeAreaView>
 
       <View style={{ flex: 1 }}>
         {tab === 'today' && <TodayScreen today={today} onOpen={setEditing} onRefresh={syncNow} />}
@@ -77,7 +93,14 @@ function Shell() {
         {tab === 'settings' && <SettingsScreen />}
       </View>
 
-      <SafeAreaView edges={['bottom']} style={{ backgroundColor: theme.panel, borderTopWidth: 1, borderColor: theme.line }}>
+      <SafeAreaView
+        edges={['bottom']}
+        style={{
+          backgroundColor: theme.panel,
+          borderTopWidth: 1,
+          borderColor: theme.line,
+        }}
+      >
         <View style={{ flexDirection: 'row', padding: 8, gap: 6 }}>
           {TABS.map((item) => (
             <Pressable
@@ -90,7 +113,7 @@ function Shell() {
                 alignItems: 'center',
                 paddingVertical: 12,
                 borderRadius: theme.radius(10),
-                backgroundColor: tab === item.tab ? theme.sunken : 'transparent',
+                backgroundColor: tab === item.tab ? theme.sageWash : 'transparent',
               }}
             >
               <Text size="sm" weight={tab === item.tab ? '600' : '400'} tone={tab === item.tab ? 'fg' : 'muted'}>
@@ -102,7 +125,7 @@ function Shell() {
       </SafeAreaView>
 
       <TaskEditor target={editing} today={today} onClose={() => setEditing(null)} />
-    </SafeAreaView>
+    </View>
   )
 }
 
@@ -110,10 +133,22 @@ function Shell() {
 function ConfigError({ message }: { message: string }) {
   const theme = useTheme()
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.canvas, padding: 24, justifyContent: 'center', gap: 12 }}>
-      <Text size="lg" display accessibilityRole="header">Daybook isn’t set up yet</Text>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        backgroundColor: theme.canvas,
+        padding: 24,
+        justifyContent: 'center',
+        gap: 12,
+      }}
+    >
+      <Text size="lg" display accessibilityRole="header">
+        Daybook isn’t set up yet
+      </Text>
       <Text tone="muted">{message}</Text>
-      <Text size="sm" tone="subtle">See “Accounts and sync” in mobile/README.md.</Text>
+      <Text size="sm" tone="subtle">
+        See “Accounts and sync” in mobile/README.md.
+      </Text>
     </SafeAreaView>
   )
 }
@@ -121,7 +156,14 @@ function ConfigError({ message }: { message: string }) {
 function Splash() {
   const theme = useTheme()
   return (
-    <View style={{ flex: 1, backgroundColor: theme.canvas, alignItems: 'center', justifyContent: 'center' }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: theme.canvas,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
       <ActivityIndicator color={theme.muted} accessibilityLabel="Loading" />
     </View>
   )
@@ -136,9 +178,10 @@ function Screen() {
 
 function Gate() {
   const theme = useTheme()
+  const { auth } = useStore()
   return (
     <>
-      <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={auth === 'signedIn' || theme.mode === 'dark' ? 'light' : 'dark'} />
       <Screen />
     </>
   )

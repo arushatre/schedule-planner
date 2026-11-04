@@ -7,7 +7,7 @@ import { useStore } from './store'
 // Mirrors the category colors in src/styles/index.css (muted, never neon).
 const CATEGORY: Record<'light' | 'dark', Record<PaletteKey, string>> = {
   light: {
-    clay: '237 85 59',
+    clay: '186 112 100',
     moss: '84 150 110',
     slate: '95 122 150',
     plum: '139 100 128',
@@ -17,7 +17,7 @@ const CATEGORY: Record<'light' | 'dark', Record<PaletteKey, string>> = {
     graphite: '107 111 118',
   },
   dark: {
-    clay: '237 85 59',
+    clay: '212 142 128',
     moss: '168 216 185',
     slate: '123 153 183',
     plum: '171 129 159',
@@ -27,8 +27,6 @@ const CATEGORY: Record<'light' | 'dark', Record<PaletteKey, string>> = {
     graphite: '139 144 151',
   },
 }
-
-const OVERDUE = { light: '176 86 34', dark: '228 130 104' }
 
 /** "r g b" (the web token format) to an RN color, with optional alpha. */
 export const rgb = (triplet: string, alpha = 1) => `rgba(${triplet.split(' ').join(', ')}, ${alpha})`
@@ -56,8 +54,18 @@ export function useTheme() {
     accent: c('accent'),
     accentSoft: c('accent-soft'),
     accentFg: c('accent-fg'),
-    overdue: rgb(OVERDUE[mode]),
-    overdueSoft: rgb(OVERDUE[mode], 0.12),
+    overdue: c('overdue'),
+    overdueSoft: c('overdue-soft'),
+    // Section colors (see src/lib/appearance.ts): quiet washes, 3px edges, text-safe inks.
+    frame: c('frame'),
+    frameFg: c('frame-fg'),
+    sageWash: c('sage-wash'),
+    sageEdge: c('sage-edge'),
+    mustardWash: c('mustard-wash'),
+    mustardEdge: c('mustard-edge'),
+    vermilionWash: c('vermilion-wash'),
+    vermilionEdge: c('vermilion-edge'),
+    edge: (key: 'sage' | 'mustard' | 'vermilion', alpha: number) => rgb(t[`${key}-edge`] ?? '0 0 0', alpha),
     category: (key: PaletteKey) => rgb(CATEGORY[mode][key]),
     radius: (px: number) => px * radius,
     serif: ['fraunces', 'newYork'].includes(prefs.appearance.displayFont) ? SERIF : undefined,

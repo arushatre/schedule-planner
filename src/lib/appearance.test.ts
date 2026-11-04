@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { DEFAULT_APPEARANCE, PRESETS, appearanceCss, parseAppearance, tokensFor } from './appearance'
+import { ACCENTS, DEFAULT_APPEARANCE, PRESETS, appearanceCss, contrast, parseAppearance, tokensFor } from './appearance'
+import type { AccentKey } from './appearance'
 
 const luminance = (triplet: string) => {
   const [r = 0, g = 0, b = 0] = triplet.split(' ').map(Number)
@@ -29,5 +30,29 @@ describe('appearance', () => {
     expect(css).toMatch(/--accent: \d+ \d+ \d+;/)
     expect(css).toContain('--radius-scale: 1;')
     expect(css).toContain('font-size: 100%')
+  })
+})
+
+describe('section colors', () => {
+  const rgb = (triplet: string) => triplet.split(' ').map(Number) as [number, number, number]
+  const looks = [...PRESETS.map((p) => p.value), ...Object.keys(ACCENTS).map((accent) => ({ ...DEFAULT_APPEARANCE, accent: accent as AccentKey }))]
+
+  it('keeps text readable on every wash and on the frame, in every preset and mode', () => {
+    for (const look of looks) {
+      for (const mode of ['light', 'dark'] as const) {
+        const t = tokensFor(look, mode)
+        for (const hue of ['sage', 'mustard', 'vermilion']) {
+          const wash = rgb(t[`${hue}-wash`]!)
+          expect(contrast(rgb(t.fg!), wash)).toBeGreaterThanOrEqual(4.5)
+          expect(contrast(rgb(t[`${hue}-ink`]!), wash)).toBeGreaterThanOrEqual(4.5)
+        }
+        expect(contrast(rgb(t.overdue!), rgb(t.raised!))).toBeGreaterThanOrEqual(4.5)
+        expect(contrast(rgb(t['frame-fg']!), rgb(t.frame!))).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('never emits glow tokens', () => {
+    expect(appearanceCss(DEFAULT_APPEARANCE)).not.toMatch(/glow/)
   })
 })

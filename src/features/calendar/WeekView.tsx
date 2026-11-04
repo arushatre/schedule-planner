@@ -47,7 +47,7 @@ export function WeekView({ cursor, today }: { cursor: string; today: string }) {
             className={cx(
               'group flex min-h-[8rem] flex-col gap-2 rounded-lg border border-line bg-raised p-2.5 shadow-card md:min-h-[26rem] md:rounded-none md:border-0 md:border-r md:shadow-none',
               index === 6 && 'md:border-r-0',
-              isToday && 'bg-accent-soft/40',
+              isToday && 'bg-sage-wash/70',
             )}
           >
             <div className="flex items-center justify-between">

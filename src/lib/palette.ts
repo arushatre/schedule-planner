@@ -29,7 +29,7 @@ interface PaletteEntry {
 
 export const PALETTE: Record<PaletteKey, PaletteEntry> = {
   clay: {
-    label: 'Vermilion',
+    label: 'Terracotta',
     solid: 'bg-cat-clay',
     tint: 'bg-cat-clay/15',
     border: 'border-cat-clay/30',

@@ -90,9 +90,24 @@ export function Chip({ label, on, onPress, dot }: { label: string; on: boolean; 
 }
 
 export function Section({ title, count, tone, children }: { title: string; count?: number; tone?: 'overdue'; children: ReactNode }) {
+  const theme = useTheme()
   return (
-    <View style={{ gap: 8, marginTop: 32 }}>
+    <View
+      style={[
+        { gap: 8, marginTop: 32 },
+        tone === 'overdue' && {
+          backgroundColor: theme.vermilionWash,
+          borderWidth: 1,
+          borderLeftWidth: 3,
+          borderColor: theme.edge('vermilion', 0.3),
+          borderLeftColor: theme.vermilionEdge,
+          borderRadius: theme.radius(14),
+          padding: 14,
+        },
+      ]}
+    >
       <Text size="lg" display accessibilityRole="header" tone={tone === 'overdue' ? 'overdue' : 'fg'}>
+        {tone === 'overdue' ? '⚠︎ ' : ''}
         {title}
         {count !== undefined && <Text size="sm" tone="subtle">{`  ${count}`}</Text>}
       </Text>

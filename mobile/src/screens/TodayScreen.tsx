@@ -58,8 +58,12 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
   const done = todays.length - left
   const hello = greeting(new Date().getHours())
   const headline = isToday
-    ? todays.length === 0 ? `${hello}. Nothing planned.` : `${hello}. ${left} left today.`
-    : todays.length === 0 ? 'Nothing planned.' : `${left} of ${todays.length} left.`
+    ? todays.length === 0
+      ? `${hello}. Nothing planned.`
+      : `${hello}. ${left} left today.`
+    : todays.length === 0
+      ? 'Nothing planned.'
+      : `${left} of ${todays.length} left.`
   const dayTitle = isToday ? 'Today' : friendlyDate(selected, today)
 
   const quickAdd = () => {
@@ -99,24 +103,56 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 96 }} keyboardShouldPersistTaps="handled" refreshControl={refreshControl}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16, marginTop: 8 }}>
-          <Text size="hero" display tone="accent" style={{ lineHeight: 60 }}>
-            {format(fromDateStr(selected), 'd')}
-          </Text>
-          <View style={{ paddingBottom: 8, flex: 1 }}>
-            <Text tone="muted">{format(fromDateStr(selected), 'EEEE, MMMM')}</Text>
-            <Text size="md" display>{headline}</Text>
+      <ScrollView
+        contentContainerStyle={{ padding: 20, paddingBottom: 96 }}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={refreshControl}
+      >
+        {/* The day's card: the sage wash marks "today and progress" (same role as the web hero). */}
+        <View
+          style={{
+            marginTop: 8,
+            padding: 18,
+            gap: 14,
+            backgroundColor: theme.sageWash,
+            borderWidth: 1,
+            borderColor: theme.edge('sage', 0.5),
+            borderRadius: theme.radius(16),
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
+            <Text size="hero" display tone="accent" style={{ lineHeight: 60 }}>
+              {format(fromDateStr(selected), 'd')}
+            </Text>
+            <View style={{ paddingBottom: 8, flex: 1 }}>
+              <Text tone="muted">{format(fromDateStr(selected), 'EEEE, MMMM')}</Text>
+              <Text size="md" display>
+                {headline}
+              </Text>
+            </View>
           </View>
+
+          {todays.length > 0 && (
+            <View
+              style={{
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: theme.edge('sage', 0.45),
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  width: `${(done / todays.length) * 100}%`,
+                  height: '100%',
+                  backgroundColor: theme.accent,
+                }}
+              />
+            </View>
+          )}
         </View>
 
         <WeekStrip key={today} today={today} selected={selected} tasks={tasks} categories={categories} onSelect={setSelected} />
-
-        {todays.length > 0 && (
-          <View style={{ height: 6, borderRadius: 3, backgroundColor: theme.sunken, marginTop: 16, overflow: 'hidden' }}>
-            <View style={{ width: `${(done / todays.length) * 100}%`, height: '100%', backgroundColor: theme.accent }} />
-          </View>
-        )}
 
         <TextInput
           value={draft}
@@ -150,7 +186,9 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
           ) : (
             <Card>
               <View style={{ padding: 32, alignItems: 'center', gap: 8 }}>
-                <Text display size="md">{isToday ? 'Nothing due today' : 'Nothing due'}</Text>
+                <Text display size="md">
+                  {isToday ? 'Nothing due today' : 'Nothing due'}
+                </Text>
                 <Text size="sm" tone="muted" style={{ textAlign: 'center' }}>
                   Type above to add one, or enjoy the space.
                 </Text>

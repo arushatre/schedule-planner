@@ -103,9 +103,10 @@ export function AuthScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.canvas }}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', padding: 24, gap: 24 }} keyboardShouldPersistTaps="handled">
-          <View style={{ gap: 6 }}>
-            <Text size="xl" display accessibilityRole="header">Daybook</Text>
-            <Text tone="muted">
+          {/* Navy title block: the same frame color as the app's header once signed in. */}
+          <View style={{ gap: 6, backgroundColor: theme.frame, borderRadius: theme.radius(16), padding: 20 }}>
+            <Text size="xl" display accessibilityRole="header" style={{ color: theme.frameFg }}>Daybook</Text>
+            <Text style={{ color: theme.frameFg, opacity: 0.8 }}>
               {mode === 'forgot' ? 'We’ll email you a link to choose a new password.' : 'Your tasks and calendar, the same on every device.'}
             </Text>
           </View>

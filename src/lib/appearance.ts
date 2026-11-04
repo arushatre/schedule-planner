@@ -98,6 +98,39 @@ function hsl(h: number, s: number, l: number): Rgb {
 const mix = (a: Rgb, b: Rgb, t: number): Rgb => a.map((v, i) => Math.round(v + (b[i]! - v) * t)) as Rgb
 const css = (rgb: Rgb) => rgb.join(' ')
 
+/**
+ * Supporting hues (Serene Nature), one job each: sage = today and progress, mustard = what's ahead,
+ * vermilion = overdue. They only appear as quiet washes on large areas, thin edges, or text-safe inks;
+ * never as bright fills on small marks.
+ */
+export const HUES = { sage: [168, 216, 185], mustard: [246, 213, 92], vermilion: [237, 85, 59] } satisfies Record<string, Rgb>
+export type HueKey = keyof typeof HUES
+
+// Wash strength per hue, light / dark: the Today card carries the most color, bands stay faint.
+const WASH: Record<HueKey, [number, number]> = { sage: [0.26, 0.14], mustard: [0.16, 0.08], vermilion: [0.09, 0.12] }
+
+const channel = (v: number) => {
+  const c = v / 255
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+}
+const luminance = ([r, g, b]: Rgb) => 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+
+/** WCAG contrast ratio between two colors (1–21). */
+export function contrast(a: Rgb, b: Rgb): number {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number]
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/** The hue, darkened (light mode) or lightened (dark) just enough to read at 4.5:1 on `surface`. */
+function inkOn(hue: Rgb, surface: Rgb, light: boolean): Rgb {
+  const toward: Rgb = light ? [0, 0, 0] : [255, 255, 255]
+  for (let step = 0; step <= 20; step++) {
+    const candidate = mix(hue, toward, step / 20)
+    if (contrast(candidate, surface) >= 4.5) return candidate
+  }
+  return toward
+}
+
 /** All generated CSS variables for one mode. */
 export function tokensFor(look: Appearance, mode: 'light' | 'dark'): Record<string, string> {
   const { hue, sat } = TONES[look.tone]
@@ -105,12 +138,27 @@ export function tokensFor(look: Appearance, mode: 'light' | 'dark'): Record<stri
   const n = (s: number, l: number) => hsl(hue, s, l)
   const light = mode === 'light'
   const canvas = light ? n(sat, 96) : n(sat + 6, 9)
+  const raised = light ? n(sat, 99.5) : n(sat + 6, 16)
+  const hues: Record<string, string> = {}
+  for (const key of Object.keys(HUES) as HueKey[]) {
+    const wash = mix(raised, HUES[key], WASH[key][light ? 0 : 1])
+    hues[`${key}-wash`] = css(wash)
+    hues[`${key}-edge`] = css(HUES[key])
+    hues[`${key}-ink`] = css(inkOn(HUES[key], wash, light))
+  }
+  // The frame (web sidebar, phone header) is the preset's accent as a deep, solid surface in both modes.
+  const frame = light ? ACCENTS[look.accent].light : mix(ACCENTS[look.accent].light, [0, 0, 0], 0.3)
   return {
+    ...hues,
+    overdue: css(inkOn(HUES.vermilion, raised, light)),
+    'overdue-soft': hues['vermilion-wash']!,
+    frame: css(frame),
+    'frame-fg': css([241, 241, 241]),
     canvas: css(canvas),
     'canvas-top': css(light ? n(sat, 98.5) : n(sat + 8, 13)),
     'canvas-bottom': css(light ? n(sat, 92) : n(sat + 6, 6)),
     panel: css(light ? n(sat, 94) : n(sat + 6, 12)),
-    raised: css(light ? n(sat, 99.5) : n(sat + 6, 16)),
+    raised: css(raised),
     sunken: css(light ? n(sat, 90.5) : n(sat + 6, 7)),
     line: css(light ? n(sat, 86) : n(sat + 4, 22)),
     'line-strong': css(light ? n(sat, 72) : n(sat + 4, 33)),
