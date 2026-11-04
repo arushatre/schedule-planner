@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 
 import { cx } from '@/lib/cx'
@@ -12,6 +12,8 @@ import { useUiStore } from '@/store/ui'
 import type { Occurrence } from '@/types/model'
 
 const HOUR_PX = 48
+/** About nine hours are visible; the rest of the day scrolls. */
+const VIEW_PX = 432
 /** Tasks only have a due time, so they're drawn as a short block starting there. */
 const TASK_MINUTES = 45
 
@@ -41,6 +43,7 @@ export function Schedule({ date, occs }: { date: string; occs: Occurrence[] }) {
   const classBlocks = useTasksStore((state) => state.classBlocks)
   const openEditor = useUiStore((state) => state.openEditor)
   const [now, setNow] = useState(() => new Date())
+  const scroller = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60_000)
@@ -78,19 +81,26 @@ export function Schedule({ date, occs }: { date: string; occs: Occurrence[] }) {
   ]
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const firstHour = Math.min(7, ...items.map((item) => Math.floor(item.start / 60)))
-  const lastHour = Math.min(24, Math.max(21, ...items.map((item) => Math.ceil(item.end / 60))))
-  const hours = Array.from({ length: lastHour - firstHour }, (_, index) => firstHour + index)
-  const top = (minutes: number) => ((minutes - firstHour * 60) / 60) * HOUR_PX
+  const hours = Array.from({ length: 24 }, (_, index) => index)
+  const top = (minutes: number) => (minutes / 60) * HOUR_PX
   const today = todayStr()
-  const showNow = date === today && nowMinutes >= firstHour * 60 && nowMinutes <= lastHour * 60
+  const showNow = date === today
+  // Today opens centered on the current time; other days on their first item (or 9 AM).
+  const focus = showNow ? nowMinutes : Math.min(9 * 60, ...items.map((item) => item.start))
+
+  useEffect(() => {
+    const el = scroller.current
+    if (el) el.scrollTop = Math.max(0, top(focus) - el.clientHeight / 2)
+    // Re-center when the day changes, not on every minute tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [date])
 
   return (
     <section aria-label="Schedule">
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-fg-muted">
         {date === today ? 'Today’s schedule' : `Schedule · ${friendlyDate(date, today)}`}
       </h2>
-      <div className="rounded-lg border border-line bg-raised py-4 pl-16 pr-4 shadow-card">
+      <div ref={scroller} className="overflow-y-auto rounded-lg border border-line bg-raised pb-4 pl-16 pr-4 pt-4 shadow-card" style={{ maxHeight: VIEW_PX }}>
         <div className="relative">
           {hours.map((hour) => (
             <div key={hour} className="relative border-t border-line" style={{ height: HOUR_PX }}>
