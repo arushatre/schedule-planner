@@ -25,6 +25,7 @@ describe('task mapping', () => {
     completedDates: ['2026-10-05'],
     exceptions: { '2026-10-05': '2026-10-06', '2026-10-07': '2026-10-08' },
     reminderTime: '16:30',
+    alerts: [0, 60, 1440],
     createdAt: Date.parse('2026-09-01T08:00:00.000Z'),
   })
 
@@ -37,6 +38,7 @@ describe('task mapping', () => {
       recurrence_kind: 'weekdays',
       recurrence_weekdays: [1, 3],
       tags: ['english', 'school'],
+      alerts: [0, 60, 1440],
       created_at: '2026-09-01T08:00:00.000Z',
     })
     expect(payload.overrides).toEqual([
@@ -69,6 +71,7 @@ describe('task mapping', () => {
       recurrence_weekdays: [1, 3],
       recurrence_until: '2026-12-01',
       reminder_time: '16:30:00',
+      alerts: [0, 60, 1440],
       completed_at: null,
       created_at: '2026-09-01T08:00:00+00:00',
       updated_at: NOW,

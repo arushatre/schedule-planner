@@ -6,7 +6,8 @@ import { isRecurring } from '@/lib/recurrence'
 import { makeTask } from '@/lib/tasks'
 import type { PaletteKey } from '@/lib/palette'
 import type { Patch, SyncEngine } from '@/sync/engine'
-import { LEGACY_ANSWERED_KEY, markLegacyImported, planLegacyImport, readLegacyData, useLegacyImport } from '@/sync/legacy'
+import { LEGACY_ANSWERED_KEY, markLegacyImported, readLegacyData, useLegacyImport } from '@/sync/legacy'
+import { planLegacyImport } from '@/sync/records'
 import type { Category, ClassBlock, Occurrence, Status, Task } from '@/types/model'
 
 export type TaskDraft = Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'completedAt' | 'completedDates' | 'exceptions'>

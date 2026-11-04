@@ -1,7 +1,8 @@
 import { act, render, renderHook, screen } from '@testing-library/react'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { authStorage, getKeepSignedIn, setKeepSignedIn } from '@/lib/supabase'
 import type { SupabaseClient } from '@/lib/supabase'
 import { AuthProvider } from './AuthProvider'
 import { toAuthFailure, validateEmail, validatePassword } from './errors'
@@ -115,5 +116,30 @@ describe('AuthProvider / useSession', () => {
   it('throws a clear error outside the provider', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     expect(() => renderHook(() => useSession())).toThrow(/inside <AuthProvider>/)
+  })
+})
+
+describe('keep me signed in', () => {
+  afterEach(() => {
+    localStorage.clear()
+    sessionStorage.clear()
+  })
+
+  it('defaults to on and keeps the session in localStorage', () => {
+    expect(getKeepSignedIn()).toBe(true)
+    authStorage.setItem('daybook-auth', 'token')
+    expect(localStorage.getItem('daybook-auth')).toBe('token')
+    expect(sessionStorage.getItem('daybook-auth')).toBeNull()
+  })
+
+  it('moves the session to sessionStorage when turned off, and clears both on sign-out', () => {
+    authStorage.setItem('daybook-auth', 'old')
+    setKeepSignedIn(false)
+    authStorage.setItem('daybook-auth', 'new')
+    expect(localStorage.getItem('daybook-auth')).toBeNull()
+    expect(authStorage.getItem('daybook-auth')).toBe('new')
+
+    authStorage.removeItem('daybook-auth')
+    expect(authStorage.getItem('daybook-auth')).toBeNull()
   })
 })

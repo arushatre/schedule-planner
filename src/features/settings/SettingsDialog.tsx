@@ -17,6 +17,7 @@ import { THEME_LABEL } from '@/lib/theme'
 import type { ThemePreference } from '@/lib/theme'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
+import { AccountSection } from './AccountSection'
 import { CalendarSyncSection } from './CalendarSync'
 
 const PERMISSION_COPY: Record<NotificationSupport, string> = {
@@ -123,7 +124,9 @@ export function SettingsDialog() {
   return (
     <Dialog open={open} onClose={close} title="Settings">
       <div className="grid gap-5">
-        <section className="grid gap-2">
+        <AccountSection onSignOut={close} />
+
+        <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Appearance</h3>
           <p className="text-sm text-fg-muted">
             “System” follows your device and switches automatically between light and dark.
@@ -147,7 +150,7 @@ export function SettingsDialog() {
         <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Export</h3>
           <p className="text-sm text-fg-muted">
-            Your tasks are saved in this browser. Download a backup to keep a copy or move them to another device, or export a calendar
+            Your tasks sync to your account. Download a backup for your own records, or export a calendar
             file.
           </p>
           <div className="flex flex-wrap gap-2">
@@ -180,7 +183,7 @@ export function SettingsDialog() {
         <section className="grid gap-2 border-t border-line pt-5">
           <h3 className="text-base font-medium">Import</h3>
           <p className="text-sm text-fg-muted">
-            Restore from a backup file. This replaces the tasks currently saved in this browser.
+            Restore from a backup file. This replaces your current data on every device signed in to this account.
           </p>
           <input
             ref={fileInput}

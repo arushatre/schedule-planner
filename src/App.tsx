@@ -26,7 +26,6 @@ import { Kbd, ShortcutsDialog } from '@/features/settings/ShortcutsDialog'
 import { TodayView } from '@/features/today/TodayView'
 import { useReminders } from '@/hooks/useReminders'
 import { useShortcuts } from '@/hooks/useShortcuts'
-import { useTheme } from '@/hooks/useTheme'
 import { cx } from '@/lib/cx'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
@@ -95,7 +94,6 @@ export function App() {
   const error = useTasksStore((state) => state.error)
 
   useShortcuts()
-  useTheme()
   useReminders()
   useGoogleAutoSync()
 

@@ -7,6 +7,9 @@ import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { cx } from '@/lib/cx'
 
+/** The auth screens' one transition: a short fade-up (150–250ms, per the design rules). */
+export const fade = { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0 }, transition: { duration: 0.18, ease: 'easeOut' } } as const
+
 /** Centered, raised card on the app's paper canvas (ported from 21st.dev "login-06"). */
 export function AuthCard({ title, subtitle, children }: { title: string; subtitle?: ReactNode; children: ReactNode }) {
   return (

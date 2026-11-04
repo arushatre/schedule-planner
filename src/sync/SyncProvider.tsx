@@ -1,24 +1,22 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
 
+import { supabase } from '@/lib/supabase'
 import { useSyncStore } from '@/store/sync'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import { CacheDb } from './cache'
 import type { Entity } from './cache'
 import { SyncEngine } from './engine'
-import { localRemote } from './remote'
+import { createSupabaseRemote } from './remote'
 import type { Remote } from './remote'
 
 const ENTITY_LABEL: Record<Entity, string> = { task: 'task', category: 'category', classBlock: 'class' }
 
-/** The single profile used without accounts; its data lives in the `daybook:local` IndexedDB. */
-export const LOCAL_USER_ID = 'local'
-
 interface SyncProviderProps {
   userId: string
   children: ReactNode
-  /** Injected in tests; defaults to browser-only storage. */
+  /** Injected in tests; defaults to the real Supabase backend. */
   remote?: Remote
 }
 
@@ -29,7 +27,7 @@ export function SyncProvider({ userId, children, remote }: SyncProviderProps) {
     const engine = new SyncEngine({
       userId,
       cache,
-      remote: remote ?? localRemote,
+      remote: remote ?? createSupabaseRemote(supabase),
       onPatch: (patch) => useTasksStore.getState().applyPatch(patch),
       onStatus: (status) => useSyncStore.setState(status),
       onRejected: (entity, error) =>
@@ -53,9 +51,15 @@ export function SyncProvider({ userId, children, remote }: SyncProviderProps) {
       void store.seedIfEmpty().then(() => (active ? store.offerLocalImport() : undefined))
     })
 
+    // Auth refreshes (and sign-ins in other tabs) are a good moment to push anything queued.
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') void engine.sync()
+    })
+
     return () => {
       active = false
       unsubscribePull()
+      data.subscription.unsubscribe()
       engine.stop()
       useTasksStore.getState().detach()
       useSyncStore.setState({ state: 'idle', pending: 0, lastError: null, lastPulledAt: null })

@@ -4,7 +4,7 @@
 
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(47);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures (as postgres, RLS bypassed). A = 1111…, B = 2222…
@@ -102,10 +102,14 @@ select lives_ok($$ select public.save_task('{
     {"id": "bbbbbbbb-0000-0000-0000-00000000000b", "title": "Write"}
   ],
   "tags": ["School", "school", "english"],
+  "alerts": [1440, 0, 60, 0],
   "overrides": []
 }'::jsonb) $$, 'B can save their own task aggregate');
 select is((select count(*)::int from public.subtasks where task_id = 'bbbbbbbb-0000-0000-0000-000000000009'), 2, 'save_task wrote subtasks');
 select is((select count(*)::int from public.task_tags where task_id = 'bbbbbbbb-0000-0000-0000-000000000009'), 2, 'save_task de-duplicates tags case-insensitively');
+select is((select alerts from public.tasks where id = 'bbbbbbbb-0000-0000-0000-000000000009'), '{0,60,1440}'::smallint[], 'save_task stores alerts sorted and de-duplicated');
+select throws_ok($$ select public.save_task('{"id":"bbbbbbbb-0000-0000-0000-000000000009","title":"Essay draft","alerts":[20000]}'::jsonb) $$,
+  '23514', null, 'alerts beyond 7 days are rejected');
 
 -- ---------------------------------------------------------------------------
 -- As user A: data is intact and B's rows are invisible

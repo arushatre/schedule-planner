@@ -44,6 +44,7 @@ export function taskToPayload(task: Task): Json {
     recurrence_weekdays: task.recurrence.weekdays,
     recurrence_until: task.recurrence.until,
     reminder_time: task.reminderTime,
+    alerts: task.alerts,
     completed_at: task.completedAt === null ? null : toIso(task.completedAt),
     created_at: toIso(task.createdAt),
     subtasks: task.subtasks.map((subtask) => ({ id: subtask.id, title: subtask.title, done: subtask.done })),
@@ -77,8 +78,7 @@ export function rowToTask(row: TaskRowWithChildren): Task {
     completedDates: completedDates.sort(),
     exceptions,
     reminderTime: toHm(row.reminder_time),
-    // shortcut: alerts aren't in the Postgres schema (the app runs local-only); add a column if sync returns.
-    alerts: [],
+    alerts: row.alerts,
     completedAt: row.completed_at === null ? null : toMs(row.completed_at),
     createdAt: toMs(row.created_at),
     updatedAt: toMs(row.updated_at),

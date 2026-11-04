@@ -9,7 +9,8 @@ import type { Category, Task } from '@/types/model'
 import { makeTask } from '@/lib/tasks'
 import { CacheDb } from './cache'
 import { SyncEngine } from './engine'
-import { LEGACY_ANSWERED_KEY, planLegacyImport, readLegacyData, useLegacyImport } from './legacy'
+import { LEGACY_ANSWERED_KEY, LOCAL_USER_ID, readLegacyData, useLegacyImport } from './legacy'
+import { planLegacyImport } from './records'
 
 const legacyCategories: Category[] = [
   { id: 'c-school', name: 'school', colorKey: 'slate', archived: false, order: 0, createdAt: 1 },
@@ -28,8 +29,29 @@ async function writeLegacy(tasks: Task[] = legacyTasks) {
   db.close()
 }
 
+/** This week's accountless cache: one new task, and a newer copy of a legacy one. */
+async function writeLocalCache() {
+  const db = new CacheDb(LOCAL_USER_ID)
+  await db.tasks.bulkAdd([
+    makeTask({ title: 'Lab report', categoryId: '' }),
+    { ...legacyTasks[1]!, title: 'Practice scales daily' },
+  ])
+  await db.classBlocks.add({
+    id: crypto.randomUUID(),
+    title: 'Math',
+    location: '',
+    weekdays: [1, 3, 5],
+    startTime: '09:00',
+    endTime: '09:50',
+    colorKey: 'moss',
+    createdAt: 1,
+  })
+  db.close()
+}
+
 afterEach(async () => {
   await Dexie.delete('daybook')
+  await Dexie.delete(`daybook:${LOCAL_USER_ID}`)
 })
 
 describe('planLegacyImport', () => {
@@ -94,6 +116,25 @@ describe('local data import offer', () => {
 
     // Marked as imported: neither this nor any other account is offered it again.
     expect(await readLegacyData()).toBeNull()
+  })
+
+  it('merges the accountless local cache into the offer, newest copy winning', async () => {
+    await writeLegacy()
+    await writeLocalCache()
+    await useTasksStore.getState().offerLocalImport()
+    const offer = useLegacyImport.getState().offer
+    expect(offer?.tasks.map((task) => task.title).sort()).toEqual(['Essay', 'Lab report', 'Practice scales daily'])
+    expect(offer?.classBlocks.map((block) => block.title)).toEqual(['Math'])
+
+    await useTasksStore.getState().answerLocalImport(userId, offer ?? null)
+    expect(useTasksStore.getState().tasks).toHaveLength(3)
+    expect(await readLegacyData()).toBeNull()
+  })
+
+  it('offers the local cache on its own when there is no legacy database', async () => {
+    await writeLocalCache()
+    expect((await readLegacyData())?.tasks).toHaveLength(2)
+    expect(await Dexie.exists('daybook')).toBe(false)
   })
 
   it('remembers "Not now" for this account without touching the local copy', async () => {

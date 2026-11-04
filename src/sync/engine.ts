@@ -1,6 +1,7 @@
 import type { Category, ClassBlock, Task } from '@/types/model'
 import { enqueue } from './cache'
 import type { AnyRecord, CacheDb, Entity, EntityRecord, OutboxEntry } from './cache'
+import { sameRecord } from './records'
 import { classifyError } from './remote'
 import type { Remote, RemoteError, Snapshot } from './remote'
 
@@ -52,22 +53,6 @@ const isEmpty = (patch: Patch): boolean =>
   ENTITIES.every((entity) => patch[entity].put.length === 0 && patch[entity].remove.length === 0)
 
 const pendingKey = (entity: Entity, id: string): string => `${entity}:${id}`
-
-/** Key-order-independent comparison so identical records don't trigger re-renders. */
-function sameRecord(a: unknown, b: unknown): boolean {
-  const stable = (value: unknown): unknown => {
-    if (Array.isArray(value)) return value.map(stable)
-    if (value && typeof value === 'object') {
-      return Object.fromEntries(
-        Object.entries(value as Record<string, unknown>)
-          .sort(([x], [y]) => (x < y ? -1 : 1))
-          .map(([key, inner]) => [key, stable(inner)]),
-      )
-    }
-    return value
-  }
-  return JSON.stringify(stable(a)) === JSON.stringify(stable(b))
-}
 
 function addToPatch(patch: Patch, entity: Entity, put: AnyRecord[], remove: string[]): void {
   ;(patch[entity].put as AnyRecord[]).push(...put)

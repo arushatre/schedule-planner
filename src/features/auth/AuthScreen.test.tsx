@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { SessionContext } from '@/auth/useSession'
 import type { AuthResult, SessionContextValue } from '@/auth/useSession'
@@ -38,6 +38,8 @@ function deferred<T>() {
 }
 
 describe('AuthScreen', () => {
+  afterEach(() => localStorage.clear())
+
   it('validates inline and does not call Supabase with a bad email', async () => {
     const user = userEvent.setup()
     const session = renderScreen()
@@ -97,6 +99,34 @@ describe('AuthScreen', () => {
     pending.resolve({ error: { kind: 'invalid_credentials', message: 'That email and password don’t match.' } })
     expect(await screen.findByRole('alert')).toHaveTextContent('That email and password don’t match.')
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled()
+  })
+
+  it('saves "Keep me signed in" before signing in', async () => {
+    const user = userEvent.setup()
+    const session = renderScreen({
+      signInWithPassword: vi.fn(async () => {
+        expect(localStorage.getItem('daybook:keepSignedIn')).toBe('false')
+        return ok
+      }),
+    })
+    await user.click(screen.getByRole('tab', { name: 'Password' }))
+    const keep = screen.getByRole('checkbox', { name: 'Keep me signed in' })
+    expect(keep).toBeChecked()
+    await user.click(keep)
+    await user.type(screen.getByLabelText('Email'), 'sam@school.edu')
+    await user.type(screen.getByLabelText('Password', { selector: 'input' }), 'hunter22')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(session.signInWithPassword).toHaveBeenCalled()
+  })
+
+  it('sends a password reset link for the typed email', async () => {
+    const user = userEvent.setup()
+    const session = renderScreen()
+    await user.click(screen.getByRole('tab', { name: 'Password' }))
+    await user.type(screen.getByLabelText('Email'), 'sam@school.edu')
+    await user.click(screen.getByRole('button', { name: 'Forgot password?' }))
+    expect(session.sendPasswordReset).toHaveBeenCalledWith('sam@school.edu')
+    expect(await screen.findByText(/a password reset link is on its way/)).toBeInTheDocument()
   })
 
   it('toggles the password field visibility', async () => {

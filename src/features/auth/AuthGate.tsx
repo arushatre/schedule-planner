@@ -4,6 +4,7 @@ import { App } from '@/App'
 import { useSession } from '@/auth/useSession'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ToastHost } from '@/components/ui/ToastHost'
+import { useTheme } from '@/hooks/useTheme'
 import { supabaseConfigError } from '@/lib/supabase'
 import { SyncProvider } from '@/sync/SyncProvider'
 import { AuthScreen } from './AuthScreen'
@@ -21,6 +22,8 @@ function Splash() {
 /** Nothing below the gate renders without a session, so every read and write is tied to auth.uid(). */
 export function AuthGate() {
   const { status, user } = useSession()
+  // Here rather than in App so the sign-in and reset screens get the chosen colors too.
+  useTheme()
 
   if (supabaseConfigError) {
     return (
