@@ -62,6 +62,8 @@ export interface Task {
   /** Single-occurrence drags: original date -> new date. */
   exceptions: Record<string, string>
   reminderTime: string | null
+  /** Alerts as minutes before the due moment (0 = at due time). */
+  alerts: number[]
   completedAt: number | null
   createdAt: number
   updatedAt: number

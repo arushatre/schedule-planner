@@ -160,7 +160,8 @@ export class SyncEngine {
       this.cache.categories.toArray(),
       this.cache.classBlocks.toArray(),
     ])
-    return { tasks, categories, classBlocks }
+    // Records cached before alerts existed have no `alerts` field.
+    return { tasks: tasks.map((task) => ({ ...task, alerts: Array.isArray(task.alerts) ? task.alerts : [] })), categories, classBlocks }
   }
 
   /** Writes records locally and queues them for the server. `before` is the pre-edit state (null = new). */
@@ -322,6 +323,8 @@ export class SyncEngine {
 
   /** Replaces cached records with the server's, except those with pending writes. Returns false on failure. */
   async pull(): Promise<boolean> {
+    // Local-only: the cache is the only copy, and pulling from it could race concurrent writes.
+    if (this.remote.localOnly) return this.markPulled(emptyPatch())
     const result = await this.remote.fetchAll()
     if (result.error) {
       const kind = classifyError(result.error)
@@ -351,6 +354,10 @@ export class SyncEngine {
         addToPatch(patch, entity, put, remove)
       }
     })
+    return this.markPulled(patch)
+  }
+
+  private async markPulled(patch: Patch): Promise<boolean> {
     const pulledAt = Date.now()
     await this.cache.setMeta('pulledAt', String(pulledAt))
     if (!isEmpty(patch)) this.options.onPatch(patch)

@@ -87,11 +87,11 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
             </span>
           )}
           {task.dueTime && <span className="tabular">{formatTime(task.dueTime)}</span>}
-          {task.reminderTime && !occ.done && (
-            <span className="tabular inline-flex items-center gap-1" title="Reminder">
+          {(task.reminderTime ?? task.alerts.length > 0) && !occ.done && (
+            <span className="tabular inline-flex items-center gap-1" title="Alerts set">
               <Icon icon={Bell} size={14} />
-              <span className="sr-only">Reminder at</span>
-              {formatTime(task.reminderTime)}
+              <span className="sr-only">{task.reminderTime ? 'Reminder at' : 'Alerts set'}</span>
+              {task.reminderTime ? formatTime(task.reminderTime) : task.alerts.length}
             </span>
           )}
           {isRecurring(task) && (

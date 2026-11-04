@@ -1,33 +1,46 @@
+import { format } from 'date-fns'
 import { useEffect } from 'react'
 
-import { formatTime, toDateStr } from '@/lib/dates'
+import { toDateStr } from '@/lib/dates'
 import { showNotification } from '@/lib/notifications'
 import { readStored, writeStored } from '@/lib/persist'
 import { expandOccurrences } from '@/lib/recurrence'
-import { dueReminders, reminderKey } from '@/lib/reminders'
+import { BRIEFING_HOUR, alertWindow, briefing, dueAlerts } from '@/lib/reminders'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 
-const FIRED_KEY = 'daybook:firedReminders'
+const FIRED_KEY = 'daybook:firedAlerts'
+const BRIEFED_KEY = 'daybook:lastBriefing'
 const CHECK_EVERY_MS = 30_000
+/** Enough history to cover a week of alerts without growing forever. */
+const FIRED_LIMIT = 500
 
-function loadFired(today: string): Set<string> {
+function loadFired(): string[] {
   try {
-    const parsed: unknown = JSON.parse(readStored(FIRED_KEY) ?? 'null')
-    if (typeof parsed === 'object' && parsed !== null && 'date' in parsed && 'keys' in parsed) {
-      const { date, keys } = parsed as { date: unknown; keys: unknown }
-      if (date === today && Array.isArray(keys)) return new Set(keys.filter((key): key is string => typeof key === 'string'))
-    }
+    const parsed: unknown = JSON.parse(readStored(FIRED_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed.filter((key): key is string => typeof key === 'string') : []
   } catch {
-    // Corrupt value: start fresh.
+    return [] // Corrupt value: start fresh.
   }
-  return new Set()
+}
+
+/** System notification when permitted, otherwise an in-app toast. */
+function notify(title: string, body: string, tag: string, taskId?: string): void {
+  void showNotification(title, body, tag).then((shown) => {
+    if (shown) return
+    const ui = useUiStore.getState()
+    ui.pushToast({
+      message: `${title}: ${body}`,
+      ...(taskId && { actionLabel: 'Open', onAction: () => ui.openEditor({ mode: 'edit', taskId }) }),
+    })
+  })
 }
 
 /**
- * Fires reminders while the app is open. Uses a system notification when
- * permitted, otherwise an in-app toast. There is no server, so nothing fires
- * while the app is closed.
+ * The notification agent. While Daybook is open (tab or installed app) it
+ * watches every task's alerts, catches up on ones missed while it was closed,
+ * and sends one morning briefing a day. There is no server, so nothing can
+ * wake it while the app is fully closed.
  */
 export function useReminders(): void {
   useEffect(() => {
@@ -38,23 +51,24 @@ export function useReminders(): void {
 
       const now = new Date()
       const today = toDateStr(now)
-      const fired = loadFired(today)
-      const due = dueReminders(expandOccurrences(tasks, today, today), now, today, fired)
-      if (due.length === 0) return
 
-      due.forEach((occ) => fired.add(reminderKey(occ)))
-      writeStored(FIRED_KEY, JSON.stringify({ date: today, keys: [...fired] }))
+      if (ui.briefingEnabled && now.getHours() >= BRIEFING_HOUR && readStored(BRIEFED_KEY) !== today) {
+        writeStored(BRIEFED_KEY, today)
+        const summary = briefing(tasks, today)
+        if (summary) notify(summary.title, summary.body, `briefing-${today}`)
+      }
 
-      for (const occ of due) {
-        const when = occ.task.dueTime ? ` at ${formatTime(occ.task.dueTime)}` : ''
-        void showNotification(occ.task.title, `Due today${when}`, reminderKey(occ)).then((shown) => {
-          if (shown) return
-          useUiStore.getState().pushToast({
-            message: `Reminder: ${occ.task.title}${when}`,
-            actionLabel: 'Open',
-            onAction: () => useUiStore.getState().openEditor({ mode: 'edit', taskId: occ.task.id }),
-          })
-        })
+      const { from, to } = alertWindow(today)
+      const fired = loadFired()
+      const due = dueAlerts(expandOccurrences(tasks, from, to), now, new Set(fired))
+      if (due.fired.length === 0) return
+      writeStored(FIRED_KEY, JSON.stringify([...fired, ...due.fired].slice(-FIRED_LIMIT)))
+
+      for (const alert of due.notify) {
+        const missed = now.getTime() - alert.at.getTime() > 5 * 60_000
+        // A caught-up alert reports the real due moment rather than its original lead time.
+        const body = missed ? `Due ${format(alert.due, 'EEE h:mm a')} · alert missed while away` : alert.label
+        notify(alert.occ.task.title, body, alert.key, alert.occ.task.id)
       }
     }
 

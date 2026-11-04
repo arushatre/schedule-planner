@@ -15,6 +15,7 @@ export function makeTask(overrides: Partial<Task> & Pick<Task, 'title' | 'catego
     completedDates: [],
     exceptions: {},
     reminderTime: null,
+    alerts: [],
     completedAt: null,
     createdAt: now,
     updatedAt: now,

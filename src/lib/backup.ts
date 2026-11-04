@@ -66,6 +66,9 @@ function normalizeTask(raw: unknown): Task | null {
     completedDates: stringList(raw.completedDates).filter(isDateStr),
     exceptions,
     reminderTime: asTime(raw.reminderTime),
+    alerts: Array.isArray(raw.alerts)
+      ? [...new Set(raw.alerts.filter((m): m is number => Number.isInteger(m) && m >= 0 && m <= 10080))]
+      : [],
     completedAt: typeof raw.completedAt === 'number' ? raw.completedAt : null,
     createdAt: asNumber(raw.createdAt, now),
     updatedAt: asNumber(raw.updatedAt, now),

@@ -1,6 +1,7 @@
 import { Plus, Trash2, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { AlertPicker } from '@/components/task/AlertPicker'
 import { Button } from '@/components/ui/Button'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { DatePicker } from '@/components/ui/DatePicker'
@@ -47,6 +48,7 @@ interface FormState {
   subtasks: Subtask[]
   recurrence: Recurrence
   reminderTime: string
+  alerts: number[]
 }
 
 function initialState(task: Task | null, defaults: { dueDate: string | null; categoryId: string }): FormState {
@@ -62,6 +64,7 @@ function initialState(task: Task | null, defaults: { dueDate: string | null; cat
     subtasks: task?.subtasks ?? [],
     recurrence: task?.recurrence ?? { kind: 'none', weekdays: [], until: null },
     reminderTime: task?.reminderTime ?? '',
+    alerts: task?.alerts ?? [],
   }
 }
 
@@ -136,6 +139,7 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
       subtasks: form.subtasks,
       recurrence: { ...form.recurrence, until: recurring ? form.recurrence.until : null },
       reminderTime: form.dueDate && form.reminderTime ? form.reminderTime : null,
+      alerts: form.dueDate ? form.alerts : [],
     } satisfies Partial<Task>
 
     void guard(async () => {
@@ -232,6 +236,12 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
             />
           </Field>
         </div>
+
+        {form.dueDate && (
+          <Field label="Alerts">
+            <AlertPicker value={form.alerts} onChange={(alerts) => patch({ alerts })} timed={form.dueTime !== ''} />
+          </Field>
+        )}
 
         <Field label="Priority">
           <Segmented

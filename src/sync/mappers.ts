@@ -77,6 +77,8 @@ export function rowToTask(row: TaskRowWithChildren): Task {
     completedDates: completedDates.sort(),
     exceptions,
     reminderTime: toHm(row.reminder_time),
+    // shortcut: alerts aren't in the Postgres schema (the app runs local-only); add a column if sync returns.
+    alerts: [],
     completedAt: row.completed_at === null ? null : toMs(row.completed_at),
     createdAt: toMs(row.created_at),
     updatedAt: toMs(row.updated_at),
