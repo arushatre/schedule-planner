@@ -1,21 +1,15 @@
 # Daybook
 
-A calendar and checkable task list. Every task is both a list item and a calendar event. Tasks sync to your
-account through Supabase (Postgres with row-level security) and stay fully usable offline: the app boots from
-a local IndexedDB cache and queues changes until you reconnect.
+A calendar and checkable task list. Every task is both a list item and a calendar event. It runs entirely on
+your device: no sign-in, no server. The web app keeps your history in the browser (IndexedDB) and works offline;
+the phone app in [`mobile/`](mobile/README.md) keeps its own copy on the phone.
 
 ## Run it
 
-You need Node and Docker (for the local Supabase stack).
-
 ```bash
 npm install
-npm run db:start                 # local Postgres, Auth, Realtime (first run pulls Docker images)
-cp .env.example .env             # then paste API_URL / ANON_KEY from: npx supabase status -o env
 npm run dev                      # http://localhost:5173
 ```
-
-Sign up with a password, or use a magic link: local emails appear in Mailpit at http://127.0.0.1:54324.
 
 | Command | What it does |
 | --- | --- |
@@ -23,29 +17,31 @@ Sign up with a password, or use a magic link: local emails appear in Mailpit at 
 | `npm run build` | Type-check and produce a production build in `dist/` |
 | `npm run preview` | Serve the production build (service worker and offline mode work here) |
 | `npm run lint` | ESLint (no `any`, named exports only, import order) |
-| `npm test` | Vitest unit tests (in-memory backend, no Docker needed) |
-| `npm run test:integration` | Adapter tests against the local Supabase stack |
-| `npm run db:start` / `db:stop` | Start / stop the local Supabase stack |
-| `npm run db:reset` | Rebuild the local database from `supabase/migrations/` |
-| `npm run db:test` | pgTAP suite proving row-level security (cross-user and anonymous access fail) |
-| `npm run db:types` | Regenerate `src/types/database.ts` after changing a migration |
-
-To use a hosted Supabase project instead, run `npx supabase link` and `npx supabase db push`, then put the
-project URL and anon (publishable) key in `.env`. Never put the service-role key in a `VITE_` variable.
+| `npm test` | Vitest unit tests |
 
 ## What's in it
 
-- **Accounts**: email + password or magic link, password reset, sign out; the app is gated behind a session
-- **Sync**: optimistic updates, offline queue that replays on reconnect, rollback with a notice if the server
-  rejects a change, live updates across tabs and devices
-- **Today**: today's tasks, overdue, next 7 days, completed today/this week, and a streak
+- **Today**: today's tasks, a clickable week strip, overdue, next 7 days, progress and a streak
 - **List** and **Board**: group, sort, AND-combined filters, fuzzy search, bulk actions, Kanban columns
 - **Calendar**: Month, Week, Day and Agenda; drag chips to reschedule; weekly class schedule overlay
 - **Insights**: tasks completed per category by week
-- Recurring tasks, subtasks, tags, categories with a curated palette, reminders
+- **Customize**: six color schemes (Cobalt & Porcelain is the default) plus one-click choices for light/dark,
+  background tone, accent, heading and body fonts, corner style and text size. Saved in the browser.
+- **Alerts**: give any task as many alerts as you like (at due time, 10/30 min, 1/2 hr, 1/2 days, 1 week before)
+  on top of an optional reminder time. They show as macOS notifications.
+- **Morning briefing**: once a day after 7:00 a notification summarizes what's due, what's overdue and what's next
+- Recurring tasks, subtasks, tags, categories with a curated palette
 - Natural-language quick-add: `Essay draft fri 5pm #school !urgent`, `Gym every mon wed fri 7am`
-- Keyboard shortcuts (press `?`), dark mode, installable PWA that works offline
-- JSON backup/restore and `.ics` export (Settings)
+- Keyboard shortcuts (press `?`), installable PWA that works offline
+- JSON backup/restore and `.ics` export (Settings); the backup file also moves data to and from the phone app
+
+### Laptop notifications
+
+Settings → Alerts & notifications → turn it on and allow notifications when the browser asks, then press
+**Send a test notification**. If nothing appears, check System Settings → Notifications for your browser and that
+Focus mode is off. Alerts fire while Daybook is open in a tab or installed as an app (the install icon in Chrome's
+address bar puts it in your Dock). Alerts that came due while it was closed are delivered when you next open it, as
+long as the task isn't past due.
 
 ## Google Calendar (and iPhone / Mac)
 
@@ -70,8 +66,9 @@ format* from Google Calendar's settings and add it as a subscribed calendar.
 
 ## Notes
 
-- Tasks saved in a browser before accounts existed are offered for import on first sign-in.
-- Reminders fire while the app is open (in a tab or installed); nothing server-side wakes it.
-- Schema and policies live in `supabase/migrations/`; the sync layer is in `src/sync/`.
+- Shared, framework-free logic lives in `src/lib` (dates, recurrence, quick-add, alerts, backup format, colors)
+  and is used by both the web app and the phone app.
+- The Supabase sync code in `src/sync/`, `src/auth/` and `supabase/` is switched off (the app runs local-only)
+  and kept in case accounts come back.
 - Design tokens (colors, type, spacing, shadows) live in `tailwind.config.ts` and `src/styles/index.css`.
 - App icons are generated by `node scripts/generate-icons.mjs`.
