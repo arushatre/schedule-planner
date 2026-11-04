@@ -11,11 +11,11 @@
     --inset-highlight: rgb(255 255 255 / 0.65);
 
     /* Curated category palette: muted, desaturated, never neon. */
-    --cat-clay: 184 115 90;
-    --cat-moss: 111 138 94;
+    --cat-clay: 237 85 59;
+    --cat-moss: 84 150 110;
     --cat-slate: 95 122 150;
     --cat-plum: 139 100 128;
-    --cat-ochre: 179 146 71;
+    --cat-ochre: 184 146 30;
     --cat-teal: 78 138 133;
     --cat-rose: 179 111 126;
     --cat-graphite: 107 111 118;
@@ -29,11 +29,11 @@
     --overdue-soft: 68 37 36;
     --inset-highlight: rgb(255 255 255 / 0.05);
 
-    --cat-clay: 205 137 112;
-    --cat-moss: 139 166 121;
+    --cat-clay: 237 85 59;
+    --cat-moss: 168 216 185;
     --cat-slate: 123 153 183;
     --cat-plum: 171 129 159;
-    --cat-ochre: 201 167 93;
+    --cat-ochre: 246 213 92;
     --cat-teal: 103 166 159;
     --cat-rose: 201 133 149;
     --cat-graphite: 139 144 151;

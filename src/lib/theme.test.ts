@@ -20,7 +20,7 @@ describe('theme', () => {
     document.head.innerHTML = '<meta name="theme-color" content="#000">'
     applyTheme('dark')
     expect(document.documentElement.dataset.theme).toBe('dark')
-    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#12151C')
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#141719')
     applyTheme('light')
     expect(document.documentElement.dataset.theme).toBe('light')
   })

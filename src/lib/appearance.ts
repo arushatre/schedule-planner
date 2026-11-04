@@ -21,6 +21,7 @@ export interface FontChoice {
 }
 
 export const TONES = {
+  cloud: { label: 'Cloud', hue: 214, sat: 5 },
   porcelain: { label: 'Porcelain', hue: 215, sat: 22 },
   harbor: { label: 'Harbor', hue: 205, sat: 32 },
   mist: { label: 'Sage mist', hue: 158, sat: 14 },
@@ -29,6 +30,8 @@ export const TONES = {
 } satisfies Record<string, Tone>
 
 export const ACCENTS = {
+  // Serene Nature: #1D3557 navy in light mode; #A8D8B9 sage in dark, where navy would vanish.
+  navy: { label: 'Navy & sage', light: [29, 53, 87], dark: [168, 216, 185] },
   cobalt: { label: 'Cobalt', light: [37, 74, 168], dark: [138, 168, 236] },
   jade: { label: 'Jade', light: [22, 112, 92], dark: [108, 196, 166] },
   peacock: { label: 'Peacock', light: [16, 104, 122], dark: [98, 190, 204] },
@@ -65,8 +68,8 @@ export interface Appearance {
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
-  tone: 'porcelain',
-  accent: 'cobalt',
+  tone: 'cloud',
+  accent: 'navy',
   displayFont: 'fraunces',
   bodyFont: 'instrument',
   radius: 'soft',
@@ -74,7 +77,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
 }
 
 export const PRESETS: { label: string; value: Appearance }[] = [
-  { label: 'Cobalt & Porcelain', value: DEFAULT_APPEARANCE },
+  { label: 'Serene Nature', value: DEFAULT_APPEARANCE },
+  { label: 'Cobalt & Porcelain', value: { ...DEFAULT_APPEARANCE, tone: 'porcelain', accent: 'cobalt' } },
   { label: 'Jade Atelier', value: { ...DEFAULT_APPEARANCE, tone: 'mist', accent: 'jade' } },
   { label: 'Midnight Brass', value: { ...DEFAULT_APPEARANCE, tone: 'harbor', accent: 'brass', displayFont: 'newYork' } },
   { label: 'Amethyst Study', value: { ...DEFAULT_APPEARANCE, tone: 'lilac', accent: 'amethyst', displayFont: 'rounded', bodyFont: 'rounded', radius: 'round' } },

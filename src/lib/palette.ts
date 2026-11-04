@@ -29,7 +29,7 @@ interface PaletteEntry {
 
 export const PALETTE: Record<PaletteKey, PaletteEntry> = {
   clay: {
-    label: 'Clay',
+    label: 'Vermilion',
     solid: 'bg-cat-clay',
     tint: 'bg-cat-clay/15',
     border: 'border-cat-clay/30',
@@ -37,7 +37,7 @@ export const PALETTE: Record<PaletteKey, PaletteEntry> = {
     ink: 'text-cat-clay',
   },
   moss: {
-    label: 'Moss',
+    label: 'Sage',
     solid: 'bg-cat-moss',
     tint: 'bg-cat-moss/15',
     border: 'border-cat-moss/30',
@@ -61,7 +61,7 @@ export const PALETTE: Record<PaletteKey, PaletteEntry> = {
     ink: 'text-cat-plum',
   },
   ochre: {
-    label: 'Ochre',
+    label: 'Mustard',
     solid: 'bg-cat-ochre',
     tint: 'bg-cat-ochre/15',
     border: 'border-cat-ochre/30',

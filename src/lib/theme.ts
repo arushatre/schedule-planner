@@ -19,7 +19,7 @@ export function resolveTheme(preference: ThemePreference, systemPrefersDark: boo
 }
 
 /** Browser-chrome color (mobile address bar) matching each theme's canvas. */
-const CHROME_COLOR: Record<ResolvedTheme, string> = { light: '#F5F7FA', dark: '#12151C' }
+const CHROME_COLOR: Record<ResolvedTheme, string> = { light: '#F4F5F5', dark: '#141719' }
 
 export function applyTheme(theme: ResolvedTheme, doc: Document = document): void {
   doc.documentElement.dataset.theme = theme

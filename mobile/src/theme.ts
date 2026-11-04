@@ -7,21 +7,21 @@ import { useStore } from './store'
 // Mirrors the category colors in src/styles/index.css (muted, never neon).
 const CATEGORY: Record<'light' | 'dark', Record<PaletteKey, string>> = {
   light: {
-    clay: '184 115 90',
-    moss: '111 138 94',
+    clay: '237 85 59',
+    moss: '84 150 110',
     slate: '95 122 150',
     plum: '139 100 128',
-    ochre: '179 146 71',
+    ochre: '184 146 30',
     teal: '78 138 133',
     rose: '179 111 126',
     graphite: '107 111 118',
   },
   dark: {
-    clay: '205 137 112',
-    moss: '139 166 121',
+    clay: '237 85 59',
+    moss: '168 216 185',
     slate: '123 153 183',
     plum: '171 129 159',
-    ochre: '201 167 93',
+    ochre: '246 213 92',
     teal: '103 166 159',
     rose: '201 133 149',
     graphite: '139 144 151',
