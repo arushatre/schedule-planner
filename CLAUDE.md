@@ -1,3 +1,6 @@
+# Session Startup
+- At the start of every NEW session in the same folder, read `HANDOFF.md` to restore state, recent decisions, and next steps before executing tasks.
+
 # Project Overview
 - Tech stack: React 18, TypeScript, Vite, Tailwind CSS 3 (custom theme), Zustand, Dexie, date-fns, dnd-kit, Framer Motion, lucide-react, Supabase (Postgres + Auth + Realtime)
 - Main entry point: `src/main.tsx`; the Expo phone app lives in `mobile/` (see `mobile/README.md`) and imports shared pure logic from `src/lib` via the `@/` alias
