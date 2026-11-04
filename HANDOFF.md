@@ -77,6 +77,10 @@ Verified at handoff:
 
 ## Known limits and unverified items
 
+- CI (Pages workflow) runs the full root suite on a clean machine: tests use placeholder Supabase settings when there's
+  no `.env` (`vite.config.ts` → `test.env`), and the workflow installs `mobile/` packages for the phone sync-queue
+  tests. Empty Supabase settings now show the setup notice instead of a blank page.
+
 - The phone app has never run on a device. It is only typechecked, bundled and checked with expo-doctor, and its sync logic is unit-tested plus covered by a Node script against the local DB.
 - Web alerts only fire while the app is open. The phone schedules real local notifications (at most 60 queued).
 - With Keep me signed in off on the web, each new tab needs a fresh sign-in (sessionStorage is per tab).
