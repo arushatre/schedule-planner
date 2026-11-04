@@ -1,7 +1,7 @@
 import Storage from 'expo-sqlite/kv-store'
 
-import { DEFAULT_APPEARANCE, parseAppearance } from '@/lib/appearance'
-import type { Appearance } from '@/lib/appearance'
+import { DEFAULT_APPEARANCE, DEFAULT_PERSONAL, parseAppearance, parsePersonal } from '@/lib/appearance'
+import type { Appearance, Personal } from '@/lib/appearance'
 import { parseBackup, serializeBackup } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import type { OutboxEntry } from './outbox'
@@ -15,12 +15,13 @@ export type Mode = 'system' | 'light' | 'dark'
 
 export interface Prefs {
   appearance: Appearance
+  personal: Personal
   mode: Mode
   notifications: boolean
   briefing: boolean
 }
 
-export const DEFAULT_PREFS: Prefs = { appearance: DEFAULT_APPEARANCE, mode: 'system', notifications: false, briefing: true }
+export const DEFAULT_PREFS: Prefs = { appearance: DEFAULT_APPEARANCE, personal: DEFAULT_PERSONAL, mode: 'system', notifications: false, briefing: true }
 
 const PREFS_KEY = 'daybook:prefs'
 /** Data saved by the app before accounts; offered for import, never deleted. */
@@ -84,6 +85,7 @@ export function loadPrefs(): Prefs {
     const parsed = JSON.parse(Storage.getItemSync(PREFS_KEY) ?? '{}') as Partial<Prefs>
     return {
       appearance: parseAppearance(JSON.stringify(parsed.appearance ?? {})),
+      personal: parsePersonal(JSON.stringify(parsed.personal ?? {})),
       mode: parsed.mode === 'light' || parsed.mode === 'dark' ? parsed.mode : 'system',
       notifications: parsed.notifications === true,
       briefing: parsed.briefing !== false,

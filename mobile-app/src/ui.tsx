@@ -30,7 +30,7 @@ export function Text({ size = 'base', tone = 'fg', display, weight, style, ...re
   return (
     <RNText
       {...rest}
-      style={[{ color, fontSize, lineHeight: fontSize * 1.35, fontWeight: weight, fontFamily: display ? theme.serif : undefined }, style]}
+      style={[{ color, fontSize, lineHeight: fontSize * 1.35, fontWeight: weight, fontFamily: display ? theme.displayFont : theme.bodyFont }, style]}
     />
   )
 }

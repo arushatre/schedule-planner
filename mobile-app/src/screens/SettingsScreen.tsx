@@ -2,11 +2,14 @@ import * as DocumentPicker from 'expo-document-picker'
 import { File, Paths } from 'expo-file-system'
 import * as Sharing from 'expo-sharing'
 import { format } from 'date-fns'
-import { Alert, Linking, ScrollView, Switch, View } from 'react-native'
+import { useState } from 'react'
 import type { ReactNode } from 'react'
+import { Alert, Linking, ScrollView, Switch, TextInput, View } from 'react-native'
 
-import { ACCENTS, PRESETS } from '@/lib/appearance'
-import type { AccentKey } from '@/lib/appearance'
+import { ACCENTS, FONTS, PRESETS, TEXT_SIZES } from '@/lib/appearance'
+import type { AccentKey, FontKey, Personal, TextSizeKey } from '@/lib/appearance'
+import { defaultCategoryId } from '@/lib/tasks'
+import { PRIORITIES, PRIORITY_LABEL } from '@/types/model'
 import { parseBackup } from '@/lib/backup'
 import { ensurePermission, sendTest } from '../notifications'
 import { exportData, replaceAll, setPrefs, signOut, syncNow, useStore } from '../store'
@@ -44,9 +47,34 @@ const MODES: { mode: Mode; label: string }[] = [
   { mode: 'dark', label: 'Dark' },
 ]
 
+const SECTIONS: { key: 'showNextUp' | 'showSchedule' | 'showUpcoming'; label: string }[] = [
+  { key: 'showNextUp', label: 'Next up card' },
+  { key: 'showSchedule', label: 'Hour-by-hour schedule' },
+  { key: 'showUpcoming', label: 'Next 7 days' },
+]
+
+/** One row of chips; the chosen key is highlighted. */
+function Choice<K extends string>({ label, options, value, onChange }: { label: string; options: Record<K, { label: string }>; value: K; onChange: (key: K) => void }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text size="sm" tone="muted">{label}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {(Object.keys(options) as K[]).map((key) => (
+          <Chip key={key} label={options[key].label} on={value === key} onPress={() => onChange(key)} />
+        ))}
+      </View>
+    </View>
+  )
+}
+
 export function SettingsScreen() {
   const theme = useTheme()
-  const { prefs, tasks, user, sync } = useStore()
+  const { prefs, tasks, categories, user, sync } = useStore()
+  const [name, setName] = useState(prefs.personal.name)
+  const setPersonal = (patch: Partial<Personal>) => setPrefs({ personal: { ...prefs.personal, ...patch } })
+  const setLook = (patch: { displayFont?: FontKey; bodyFont?: FontKey; textSize?: TextSizeKey }) => setPrefs({ appearance: { ...prefs.appearance, ...patch } })
+  const activeCategories = categories.filter((category) => !category.archived)
+  const chosenCategory = defaultCategoryId(categories, prefs.personal.defaultCategoryId)
 
   const confirmSignOut = () => {
     const pending = sync.pending > 0 ? `\n\n${changes(sync.pending)} haven’t synced yet. They stay on this phone and upload the next time you sign in here.` : ''
@@ -161,6 +189,66 @@ export function SettingsScreen() {
               dot={rgb(ACCENTS[accent][theme.mode].join(' '))}
               on={prefs.appearance.accent === accent}
               onPress={() => setPrefs({ appearance: { ...prefs.appearance, accent } })}
+            />
+          ))}
+        </View>
+      </Section>
+
+      <Section title="Typography">
+        <Choice label="Heading font" options={FONTS} value={prefs.appearance.displayFont} onChange={(displayFont) => setLook({ displayFont })} />
+        <Choice label="Body font" options={FONTS} value={prefs.appearance.bodyFont} onChange={(bodyFont) => setLook({ bodyFont })} />
+        <Choice label="Text size" options={TEXT_SIZES} value={prefs.appearance.textSize} onChange={(textSize) => setLook({ textSize })} />
+      </Section>
+
+      <Section title="Dashboard">
+        <Text size="sm" tone="muted">Your name, for the greeting</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          onEndEditing={() => setPersonal({ name: name.trim() })}
+          maxLength={40}
+          returnKeyType="done"
+          placeholder="Add your name"
+          placeholderTextColor={theme.subtle}
+          accessibilityLabel="Your name, for the greeting"
+          style={{
+            color: theme.fg,
+            fontSize: 16 * theme.textScale,
+            fontFamily: theme.bodyFont,
+            backgroundColor: theme.raised,
+            borderColor: theme.line,
+            borderWidth: 1,
+            borderRadius: theme.radius(12),
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+          }}
+        />
+        <Card>
+          {SECTIONS.map(({ key, label }) => (
+            <Row key={key} label={label}>
+              <Switch value={prefs.personal[key]} onValueChange={(on) => setPersonal({ [key]: on })} trackColor={{ true: theme.accent }} />
+            </Row>
+          ))}
+        </Card>
+      </Section>
+
+      <Section title="New tasks">
+        <Text size="sm" tone="muted">Where a task starts when you don’t say otherwise.</Text>
+        <Text size="sm" tone="muted">Default priority</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {PRIORITIES.map((priority) => (
+            <Chip key={priority} label={PRIORITY_LABEL[priority]} on={prefs.personal.defaultPriority === priority} onPress={() => setPersonal({ defaultPriority: priority })} />
+          ))}
+        </View>
+        <Text size="sm" tone="muted">Default category</Text>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+          {activeCategories.map((category) => (
+            <Chip
+              key={category.id}
+              label={category.name}
+              dot={theme.category(category.colorKey)}
+              on={chosenCategory === category.id}
+              onPress={() => setPersonal({ defaultCategoryId: category.id })}
             />
           ))}
         </View>

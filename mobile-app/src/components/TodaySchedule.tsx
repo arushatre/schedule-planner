@@ -1,6 +1,7 @@
 import { format } from 'date-fns'
-import { useEffect, useState } from 'react'
-import { Pressable, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Pressable, ScrollView, View } from 'react-native'
+import type { ScrollViewInstance } from 'react-native'
 
 import { formatTime } from '@/lib/dates'
 import type { PaletteKey } from '@/lib/palette'
@@ -11,6 +12,8 @@ import { useTheme } from '../theme'
 import { Text } from '../ui'
 
 const HOUR = 48
+/** About eight hours are visible; the rest of the day scrolls inside the box. */
+const VIEW_HEIGHT = 400
 /** Tasks only have a due time, so they're drawn as a short block starting there. */
 const TASK_MINUTES = 45
 const minutesOf = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5))
@@ -75,14 +78,26 @@ export function TodaySchedule({ date, today, occs, categories, classBlocks, onOp
   ]
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const first = Math.min(7, ...items.map((item) => Math.floor(item.start / 60)))
-  const last = Math.min(24, Math.max(21, ...items.map((item) => Math.ceil(item.end / 60))))
-  const hours = Array.from({ length: last - first }, (_, index) => first + index)
-  const top = (minutes: number) => ((minutes - first * 60) / 60) * HOUR
-  const showNow = date === today && nowMinutes >= first * 60 && nowMinutes <= last * 60
+  const hours = Array.from({ length: 24 }, (_, index) => index)
+  const top = (minutes: number) => (minutes / 60) * HOUR
+  const showNow = date === today
+
+  // Today opens centered on the current time; other days on their first item (or 9 AM), as on web.
+  const scroller = useRef<ScrollViewInstance>(null)
+  const focus = showNow ? nowMinutes : Math.min(9 * 60, ...items.map((item) => item.start))
+  const center = () => scroller.current?.scrollTo({ y: Math.max(0, top(focus) - VIEW_HEIGHT / 2), animated: false })
+  // Re-center when the day changes, not on every minute tick.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(center, [date, today])
 
   return (
-    <View style={{ backgroundColor: theme.raised, borderColor: theme.line, borderWidth: 1, borderRadius: theme.radius(14), paddingVertical: 14, paddingLeft: 60, paddingRight: 12 }}>
+    <ScrollView
+      ref={scroller}
+      nestedScrollEnabled
+      onLayout={center}
+      style={{ height: VIEW_HEIGHT, backgroundColor: theme.raised, borderColor: theme.line, borderWidth: 1, borderRadius: theme.radius(14) }}
+      contentContainerStyle={{ paddingVertical: 14, paddingLeft: 60, paddingRight: 12 }}
+    >
       <View>
         {hours.map((hour) => (
           <View key={hour} style={{ height: HOUR, borderTopWidth: 1, borderColor: theme.line }}>
@@ -131,6 +146,6 @@ export function TodaySchedule({ date, today, occs, categories, classBlocks, onOp
           </View>
         )}
       </View>
-    </View>
+    </ScrollView>
   )
 }

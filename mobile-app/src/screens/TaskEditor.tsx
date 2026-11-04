@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { formatTime, fromDateStr, toDateStr } from '@/lib/dates'
 import { ALERT_OFFSETS, alertLabel } from '@/lib/reminders'
-import { makeTask, subtaskProgress } from '@/lib/tasks'
+import { defaultCategoryId, makeTask, subtaskProgress } from '@/lib/tasks'
 import { PRIORITIES, PRIORITY_LABEL } from '@/types/model'
 import type { RecurrenceKind, Task } from '@/types/model'
 import { useUndo } from '../components/Snackbar'
@@ -65,7 +65,7 @@ interface Props {
 
 export function TaskEditor({ target, today, onClose }: Props) {
   const theme = useTheme()
-  const { tasks, categories } = useStore()
+  const { tasks, categories, prefs } = useStore()
   const existing = tasks.find((task) => task.id === target) ?? null
   const [form, setForm] = useState<Task | null>(null)
   // Hosted here so it outlives the sheet; sits just above the tab bar.
@@ -75,7 +75,12 @@ export function TaskEditor({ target, today, onClose }: Props) {
   const [openFor, setOpenFor] = useState<string | null>(null)
   if (target !== openFor) {
     setOpenFor(target)
-    setForm(target === null ? null : (existing ?? makeTask({ title: '', categoryId: categories[0]?.id ?? '', dueDate: today })))
+    setForm(target === null ? null : (existing ?? makeTask({
+            title: '',
+            categoryId: defaultCategoryId(categories, prefs.personal.defaultCategoryId),
+            priority: prefs.personal.defaultPriority,
+            dueDate: today,
+          })))
   }
   if (!form) return snackbar
 

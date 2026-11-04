@@ -3,11 +3,11 @@ import { useMemo, useState } from 'react'
 import { Pressable, ScrollView, TextInput, View } from 'react-native'
 import Storage from 'expo-sqlite/kv-store'
 
-import { formatTime, friendlyDate, fromDateStr, shiftDate } from '@/lib/dates'
+import { formatTime, friendlyDate, fromDateStr, greetingFor, shiftDate } from '@/lib/dates'
 import { compareByDue, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
 import { parseQuickAdd } from '@/lib/quickAdd'
 import { computeStats } from '@/lib/stats'
-import { categoryFor, makeTask } from '@/lib/tasks'
+import { categoryFor, defaultCategoryId, makeTask } from '@/lib/tasks'
 import type { Occurrence } from '@/types/model'
 import { useToggleDone } from '../components/Snackbar'
 import { StreakBadge } from '../components/StreakSheet'
@@ -28,15 +28,10 @@ interface Props {
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
 const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
 
-function greeting(hour: number): string {
-  if (hour < 12) return 'Good morning'
-  if (hour < 18) return 'Good afternoon'
-  return 'Good evening'
-}
-
 export function TodayScreen({ today, onOpen, onRefresh }: Props) {
   const theme = useTheme()
-  const { tasks, categories, classBlocks } = useStore()
+  const { tasks, categories, classBlocks, prefs } = useStore()
+  const { personal } = prefs
   const [overdueOpen, setOverdueOpen] = useState(() => Storage.getItemSync(OVERDUE_OPEN_KEY) !== 'false')
   const [draft, setDraft] = useState('')
   const [selected, setSelected] = useState(today)
@@ -80,11 +75,11 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
     saveTask(
       makeTask({
         title: parsed.title || text,
-        categoryId: parsed.categoryId ?? categories[0]?.id ?? '',
+        categoryId: parsed.categoryId ?? defaultCategoryId(categories, personal.defaultCategoryId),
         dueDate: parsed.dueDate ?? selected,
         dueTime: parsed.dueTime,
         tags: parsed.tags,
-        priority: parsed.priority ?? 'medium',
+        priority: parsed.priority ?? personal.defaultPriority,
         ...(parsed.recurrence && { recurrence: parsed.recurrence }),
       }),
     )
@@ -119,7 +114,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
           {format(fromDateStr(today), 'EEEE, MMMM d').toUpperCase()}
         </Text>
         <Text size="xl" display accessibilityRole="header" style={{ marginTop: 4 }}>
-          {greeting(new Date().getHours())}.
+          {greetingFor(new Date().getHours(), personal.name)}
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 16, rowGap: 6, marginTop: 6 }}>
           <Text size="sm" tone="muted">
@@ -133,7 +128,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
 
         <WeekStrip key={today} today={today} selected={selected} tasks={tasks} categories={categories} onSelect={setSelected} />
 
-        {isToday && next && nextCategory && (
+        {personal.showNextUp && isToday && next && nextCategory && (
           <View style={{ marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, backgroundColor: theme.raised, borderWidth: 1, borderColor: theme.line, borderRadius: theme.radius(14) }}>
             <Pressable accessibilityRole="button" onPress={() => onOpen(next.task.id)} style={{ flex: 1, gap: 2 }}>
               <Text size="xs" tone="muted">{`Next up${next.task.dueTime ? ` · ${formatTime(next.task.dueTime)}` : ''}`}</Text>
@@ -173,9 +168,11 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
           </View>
         )}
 
-        <Section title={isToday ? 'Today’s schedule' : `Schedule · ${friendlyDate(selected, today)}`}>
-          <TodaySchedule date={selected} today={today} occs={dayOccs} categories={categories} classBlocks={classBlocks} onOpen={onOpen} />
-        </Section>
+        {personal.showSchedule && (
+          <Section title={isToday ? 'Today’s schedule' : `Schedule · ${friendlyDate(selected, today)}`}>
+            <TodaySchedule date={selected} today={today} occs={dayOccs} categories={categories} classBlocks={classBlocks} onOpen={onOpen} />
+          </Section>
+        )}
 
         <TextInput
           value={draft}
@@ -214,7 +211,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
           )}
         </Section>
 
-        {isToday && upcoming.length > 0 && (
+        {personal.showUpcoming && isToday && upcoming.length > 0 && (
           <Section title="Next 7 days" count={upcoming.length}>
             {list(upcoming, true)}
           </Section>

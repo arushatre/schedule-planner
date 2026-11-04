@@ -1,6 +1,7 @@
 import { Platform, useColorScheme } from 'react-native'
 
 import { tokensFor } from '@/lib/appearance'
+import type { FontKey } from '@/lib/appearance'
 import type { PaletteKey } from '@/lib/palette'
 import { useStore } from './store'
 
@@ -35,6 +36,8 @@ const EMBER = { light: '196 82 44', dark: '232 124 84' }
 export const rgb = (triplet: string, alpha = 1) => `rgba(${triplet.split(' ').join(', ')}, ${alpha})`
 
 const SERIF = Platform.select({ ios: 'Georgia', default: 'serif' })
+// shortcut: the phone ships no custom fonts, so serif choices map to Georgia and the rest to the system font; bundle Fraunces/Instrument/rounded fonts with expo-font to match web exactly.
+const fontFamily = (key: FontKey) => (key === 'fraunces' || key === 'newYork' ? SERIF : undefined)
 
 export function useTheme() {
   const system = useColorScheme()
@@ -69,7 +72,9 @@ export function useTheme() {
     /** How strongly task boxes are washed with their category color. */
     tint: mode === 'dark' ? 0.15 : 0.12,
     radius: (px: number) => px * radius,
-    serif: ['fraunces', 'newYork'].includes(prefs.appearance.displayFont) ? SERIF : undefined,
+    /** Font families for headings and body text, from the Typography setting. */
+    displayFont: fontFamily(prefs.appearance.displayFont),
+    bodyFont: fontFamily(prefs.appearance.bodyFont),
     textScale: { compact: 0.94, regular: 1, large: 1.1 }[prefs.appearance.textSize],
   }
 }

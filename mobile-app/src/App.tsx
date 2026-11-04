@@ -18,7 +18,7 @@ import { Text } from './ui'
 
 type Tab = 'today' | 'all' | 'settings'
 const TABS: { tab: Tab; label: string }[] = [
-  { tab: 'today', label: 'Today' },
+  { tab: 'today', label: 'Dashboard' },
   { tab: 'all', label: 'All tasks' },
   { tab: 'settings', label: 'Settings' },
 ]
@@ -63,9 +63,23 @@ function Shell() {
             paddingBottom: 14,
           }}
         >
-          <Text size="xl" display style={{ color: theme.frameFg }}>
-            {title}
-          </Text>
+          <View>
+            {/* The wordmark always leads home, like the web sidebar's. */}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Daybook, go to Dashboard"
+              onPress={() => setTab('today')}
+              hitSlop={8}
+              style={({ pressed }) => ({ alignSelf: 'flex-start', opacity: pressed ? 0.6 : 1 })}
+            >
+              <Text size="sm" display style={{ color: theme.frameFg, opacity: 0.7 }}>
+                Daybook
+              </Text>
+            </Pressable>
+            <Text size="xl" display accessibilityRole="header" style={{ color: theme.frameFg }}>
+              {title}
+            </Text>
+          </View>
           {tab !== 'settings' && (
             <Pressable
               accessibilityRole="button"
