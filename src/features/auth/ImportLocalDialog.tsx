@@ -1,32 +1,29 @@
 import { HardDriveUpload } from 'lucide-react'
 import { useState } from 'react'
 
-import { useSession } from '@/auth/useSession'
 import { Button } from '@/components/ui/Button'
 import { Dialog } from '@/components/ui/Dialog'
 import { Icon } from '@/components/ui/Icon'
 import { useLegacyImport } from '@/sync/legacy'
+import { LOCAL_USER_ID } from '@/sync/SyncProvider'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 
 const plural = (count: number, one: string, many = `${one}s`) => `${count} ${count === 1 ? one : many}`
 
-/** One-time offer to move tasks saved in this browser (before accounts) into the signed-in account. */
+/** One-time offer to move tasks saved in this browser (before accounts) into the current profile. */
 export function ImportLocalDialog() {
   const offer = useLegacyImport((state) => state.offer)
   const answer = useTasksStore((state) => state.answerLocalImport)
   const pushToast = useUiStore((state) => state.pushToast)
-  const { user } = useSession()
   const [pending, setPending] = useState(false)
-
-  if (!user) return null
 
   const respond = async (accept: boolean) => {
     if (!offer) return
     setPending(true)
     try {
-      await answer(user.id, accept ? offer : null)
-      if (accept) pushToast({ message: `Imported ${plural(offer.tasks.length, 'task')} into your account` })
+      await answer(LOCAL_USER_ID, accept ? offer : null)
+      if (accept) pushToast({ message: `Imported ${plural(offer.tasks.length, 'task')} into Daybook` })
     } finally {
       setPending(false)
     }
@@ -62,12 +59,11 @@ export function ImportLocalDialog() {
         </span>
         <div className="grid gap-2 text-base">
           <p>
-            This browser has <strong>{counts.join(', ')}</strong> saved from before you had an account.
+            This browser has <strong>{counts.join(', ')}</strong> saved by an older version of Daybook.
           </p>
           <p className="text-fg-muted">
-            Importing adds them to <strong className="text-fg">{user.email}</strong> so they sync everywhere. Categories
-            with the same name are merged. If you choose Not now, the local copy stays untouched and you won’t be asked
-            again for this account.
+            Importing adds them to your current tasks. Categories with the same name are merged. If you choose Not now, the local copy stays untouched and you won’t be asked
+            again.
           </p>
         </div>
       </div>

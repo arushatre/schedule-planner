@@ -44,6 +44,18 @@ export interface Remote {
   send: (entry: OutboxEntry) => Promise<RemoteError | null>
   subscribe: (userId: string, handlers: RealtimeHandlers) => () => void
   refreshSession: () => Promise<boolean>
+  /** No server: writes are accepted as-is and the engine never pulls. */
+  localOnly?: boolean
+}
+
+/** Single-device mode: the IndexedDB cache is the only copy of the data. */
+export const localRemote: Remote = {
+  fetchAll: async () => ({ data: { tasks: [], categories: [], classBlocks: [] }, error: null }),
+  fetchTasks: async () => ({ data: [], error: null }),
+  send: async () => null,
+  subscribe: () => () => {},
+  refreshSession: async () => true,
+  localOnly: true,
 }
 
 export type ErrorKind = 'offline' | 'transient' | 'auth' | 'permanent'

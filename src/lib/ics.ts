@@ -28,7 +28,7 @@ function stamp(date: Date): string {
   return format(date, "yyyyMMdd'T'HHmmss")
 }
 
-function rrule(task: Task): string | null {
+export function rrule(task: Task): string | null {
   if (!isRecurring(task)) return null
   const { kind, weekdays, until } = task.recurrence
   const parts: string[] = []
@@ -63,7 +63,7 @@ function timing(task: Task, date: string): string[] {
   return [`DTSTART;VALUE=DATE:${compactDate(date)}`, `DTEND;VALUE=DATE:${compactDate(next)}`]
 }
 
-function description(task: Task): string {
+export function description(task: Task): string {
   const lines = [task.notes.trim()]
   if (task.subtasks.length) {
     lines.push(task.subtasks.map((sub) => `${sub.done ? '[x]' : '[ ]'} ${sub.title}`).join('\n'))

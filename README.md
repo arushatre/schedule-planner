@@ -47,6 +47,27 @@ project URL and anon (publishable) key in `.env`. Never put the service-role key
 - Keyboard shortcuts (press `?`), dark mode, installable PWA that works offline
 - JSON backup/restore and `.ics` export (Settings)
 
+## Google Calendar (and iPhone / Mac)
+
+Settings → Calendar apps → **Connect Google Calendar** pushes dated tasks and classes into a separate
+"Daybook" calendar in your Google account (one-way; your other calendars are never read or changed).
+It needs a free Google OAuth client ID once:
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable the **Google Calendar API**.
+2. **OAuth consent screen**: choose *External*, fill in the app name, and add your own Google address under **Test users**.
+3. **Credentials → Create credentials → OAuth client ID → Web application.** Under *Authorized JavaScript origins* add
+   `http://localhost:5173` (and your hosted URL later, e.g. `https://<you>.github.io`).
+4. Copy the client ID into `.env` as `VITE_GOOGLE_CLIENT_ID=...` and restart `npm run dev`.
+5. Click **Connect Google Calendar**. Google warns the app is unverified because it's your own test app: choose *Continue*.
+
+Google's browser sign-in gives an access token for about an hour, so edits sync automatically for an hour after you
+connect or press **Sync now**; after that, press **Sync now** again. Each device pushes its own data and only removes
+events it created.
+
+**iPhone / Mac:** Apple Calendar can't be reached from a web page, so it shows Daybook through Google: either add your
+Google account in Calendar's account settings and turn on "Daybook", or copy the calendar's *Secret address in iCal
+format* from Google Calendar's settings and add it as a subscribed calendar.
+
 ## Notes
 
 - Tasks saved in a browser before accounts existed are offered for import on first sign-in.

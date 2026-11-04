@@ -186,3 +186,18 @@ describe('SyncEngine pull and realtime', () => {
     expect((await cache.tasks.get(b.id))?.title).toBe('B local')
   })
 })
+
+describe('SyncEngine local-only', () => {
+  it('keeps cached records and never pulls from the remote', async () => {
+    const remote = Object.assign(new FakeRemote(), { localOnly: true })
+    const fetchAll = vi.spyOn(remote, 'fetchAll')
+    const { engine, cache, statuses } = setup({ remote })
+    const draft = task('Essay')
+    await engine.save('task', [draft], none)
+    await engine.sync()
+    expect(fetchAll).not.toHaveBeenCalled()
+    expect(await cache.tasks.get(draft.id)).toMatchObject({ title: 'Essay' })
+    expect(await cache.outbox.count()).toBe(0)
+    expect(statuses.at(-1)?.lastPulledAt).toEqual(expect.any(Number))
+  })
+})

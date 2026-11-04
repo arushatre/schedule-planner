@@ -15,10 +15,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 // Hover/active feedback is a background tint or border shift, never a glow.
 const variants: Record<Variant, string> = {
-  primary:
-    'bg-accent text-accent-fg border-accent shadow-lift hover:bg-accent-hover hover:border-accent-hover',
-  secondary:
-    'bg-raised text-fg border-line-strong shadow-card hover:bg-panel hover:border-fg-subtle',
+  // Flat fills only: no inner highlight or drop shadow, just a slight darken on hover and press.
+  primary: 'bg-accent text-accent-fg border-transparent hover:bg-accent-hover active:brightness-95',
+  secondary: 'bg-raised text-fg border-line hover:bg-panel active:bg-sunken',
   ghost: 'bg-transparent text-fg-muted border-transparent hover:bg-sunken hover:text-fg',
 }
 
