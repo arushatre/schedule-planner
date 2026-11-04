@@ -1,6 +1,6 @@
 # Project Overview
 - Tech stack: React 18, TypeScript, Vite, Tailwind CSS 3 (custom theme), Zustand, Dexie, date-fns, dnd-kit, Framer Motion, lucide-react, Supabase (Postgres + Auth + Realtime)
-- Main entry point: `src/main.tsx`
+- Main entry point: `src/main.tsx`; the Expo phone app lives in `mobile/` (see `mobile/README.md`) and imports shared pure logic from `src/lib` via the `@/` alias
 
 ## Commands
 - Install: `npm install`, then `cp .env.example .env` and fill in `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` (`npx supabase status -o env` prints the local values)
@@ -20,7 +20,8 @@
 - Enums: `task_status` (`todo`, `in_progress`, `done`), `task_priority` (`low`, `medium`, `high`, `urgent`), `recurrence_kind`, `palette_key`. The client mirrors them in `src/types/model.ts`; ids are UUIDs generated client-side (`crypto.randomUUID()`).
 - Tasks (with children) are written atomically through the `save_task(jsonb)` RPC (security invoker, so RLS applies). Categories and class blocks use plain upserts. Mapping between app models and rows lives in `src/sync/mappers.ts`.
 - **Offline-first client** (`src/sync/`): each user has an IndexedDB cache (`daybook:<uid>`) the app boots from. Store mutations update state optimistically and write cache + an ordered outbox in one transaction; `SyncEngine` drains the outbox when online, retries transient failures with backoff, and rolls back rejected writes. Pulls, Supabase Realtime (`tasks`, `categories`, `class_blocks`), and BroadcastChannel (same-browser tabs) never overwrite records with pending local writes. Conflicts resolve as last-write-to-reach-the-server wins.
-- Auth: `AuthProvider` / `useSession()` (`src/auth/`); `AuthGate` renders nothing but the sign-in screen without a session. The pre-accounts `daybook` IndexedDB (`src/db/schema.ts`) is only read to offer a one-time import.
+- Auth: `AuthProvider` / `useSession()` (`src/auth/`); `AuthGate` renders nothing but the sign-in screen without a session. "Keep me signed in" switches the auth storage between localStorage and sessionStorage (`src/lib/supabase.ts`). The pre-accounts `daybook` IndexedDB and the local-only `daybook:local` cache are only read to offer a one-time import.
+- Phone app sync (`mobile/src/sync.ts`, `mobile/src/outbox.ts`) follows the same rules as `SyncEngine`, with an `expo-sqlite` key-value cache; shared pure helpers live in `src/sync/records.ts`.
 
 ## Code Guidelines
 - Strict TypeScript: no `any`.

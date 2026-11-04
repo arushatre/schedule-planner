@@ -1,15 +1,26 @@
 # Daybook
 
-A calendar and checkable task list. Every task is both a list item and a calendar event. It runs entirely on
-your device: no sign-in, no server. The web app keeps your history in the browser (IndexedDB) and works offline;
-the phone app in [`mobile/`](mobile/README.md) keeps its own copy on the phone.
+A calendar and checkable task list. Every task is both a list item and a calendar event. Sign in with one account
+on your laptop, phone and iPad and you see the same tasks everywhere, with live updates: add a task on the phone and
+it appears on the laptop a moment later. Each device keeps a local copy, so it opens instantly and works offline;
+changes upload when you're back online. Data lives in Supabase (Postgres), and row-level security means an account
+can only ever read or change its own rows.
 
-## Run it
+The phone app is in [`mobile/`](mobile/README.md).
+
+## Run it (local server)
+
+You need Node and Docker Desktop (for the local Supabase stack).
 
 ```bash
 npm install
+npm run db:start                 # local Postgres, Auth, Realtime (first run downloads images)
+cp .env.example .env             # then paste API_URL / ANON_KEY from: npx supabase status -o env
 npm run dev                      # http://localhost:5173
 ```
+
+Create an account on the sign-in screen. Locally, emails (password reset, magic links) land in Mailpit at
+http://127.0.0.1:54324 instead of a real inbox.
 
 | Command | What it does |
 | --- | --- |
@@ -17,18 +28,45 @@ npm run dev                      # http://localhost:5173
 | `npm run build` | Type-check and produce a production build in `dist/` |
 | `npm run preview` | Serve the production build (service worker and offline mode work here) |
 | `npm run lint` | ESLint (no `any`, named exports only, import order) |
-| `npm test` | Vitest unit tests |
+| `npm test` | Vitest unit tests (also runs the phone app's sync-queue tests) |
+| `npm run test:integration` | Adapter tests against the local Supabase stack |
+| `npm run db:start` / `db:stop` | Start / stop the local Supabase stack |
+| `npm run db:reset` | Rebuild the local database from `supabase/migrations/` |
+| `npm run db:test` | pgTAP suite proving row-level security |
+| `npm run db:types` | Regenerate `src/types/database.ts` after changing a migration |
 
-### Open it on your phone or iPad (same Wi-Fi)
+### Use it on every device, from anywhere
+
+The local server only works while the laptop is on and the other device is on the same Wi-Fi. To use Daybook from
+anywhere, point it at a free hosted Supabase project:
+
+1. Create a project at [supabase.com](https://supabase.com) (free tier).
+2. In this folder: `npx supabase login`, `npx supabase link --project-ref <your project ref>`, then
+   `npx supabase db push` to create the tables and security rules.
+3. Dashboard → Project Settings → API: put the Project URL and the anon key in `.env` (web) and
+   `mobile/.env.local` (phone).
+4. Dashboard → Authentication → URL Configuration: set the Site URL to where the web app runs and add it under
+   Redirect URLs, so password-reset links come back to the app. Under Sign In / Providers → Email, either turn off
+   "Confirm email" or set up custom SMTP: Supabase's built-in email only sends a few messages per hour.
+5. Host the web app (for example GitHub Pages) so the phone and iPad browsers can open it.
+
+Free projects pause after about a week without use; opening the dashboard resumes them.
+
+### Signing in
+
+Email and password (or a magic link). **Keep me signed in** (on by default) keeps you signed in on that device;
+turn it off on a shared computer and closing the tab signs you out. **Forgot password?** emails a reset link. Tasks
+saved on a device before accounts existed are offered for import on the first sign-in there.
+
+### Open the local server on your phone or iPad (same Wi-Fi)
 
 ```bash
 npm run dev -- --host            # prints a Network address, e.g. http://10.39.83.47:5173
 ```
 
-Open that Network address in Safari on the phone or iPad while the laptop stays on. Campus networks such as eduroam
-often block device-to-device traffic; a phone hotspot works around that. Each browser keeps its own data until
-accounts and sync are switched on (in progress, see `HANDOFF.md`); until then, move data with Settings → Download
-backup / Import.
+Open that Network address in Safari on the phone or iPad. Also set `VITE_SUPABASE_URL` in `.env` to the laptop's
+Wi-Fi IP (e.g. `http://10.39.83.47:54321`), because `127.0.0.1` on the phone means the phone. Campus networks such as
+eduroam often block device-to-device traffic; a phone hotspot works around that.
 
 ## What's in it
 
@@ -37,14 +75,14 @@ backup / Import.
 - **Calendar**: Month, Week, Day and Agenda; drag chips to reschedule; weekly class schedule overlay
 - **Insights**: tasks completed per category by week
 - **Customize**: six color schemes (Cobalt & Porcelain is the default) plus one-click choices for light/dark,
-  background tone, accent, heading and body fonts, corner style and text size. Saved in the browser.
+  background tone, accent, heading and body fonts, corner style and text size. Saved per device.
 - **Alerts**: give any task as many alerts as you like (at due time, 10/30 min, 1/2 hr, 1/2 days, 1 week before)
   on top of an optional reminder time. They show as macOS notifications.
 - **Morning briefing**: once a day after 7:00 a notification summarizes what's due, what's overdue and what's next
 - Recurring tasks, subtasks, tags, categories with a curated palette
 - Natural-language quick-add: `Essay draft fri 5pm #school !urgent`, `Gym every mon wed fri 7am`
 - Keyboard shortcuts (press `?`), installable PWA that works offline
-- JSON backup/restore and `.ics` export (Settings); the backup file also moves data to and from the phone app
+- JSON backup/restore and `.ics` export (Settings)
 
 ### Laptop notifications
 
@@ -79,7 +117,8 @@ format* from Google Calendar's settings and add it as a subscribed calendar.
 
 - Shared, framework-free logic lives in `src/lib` (dates, recurrence, quick-add, alerts, backup format, colors)
   and is used by both the web app and the phone app.
-- The Supabase sync code in `src/sync/`, `src/auth/` and `supabase/` is switched off (the app runs local-only)
-  and kept in case accounts come back.
-- Design tokens (colors, type, spacing, shadows) live in `tailwind.config.ts` and `src/styles/index.css`.
+- Sync: `src/sync/` (web: Dexie cache + ordered outbox + Realtime) and `mobile/src/sync.ts` (same rules, on-device
+  key-value cache). Schema, RLS and the `save_task` RPC live in `supabase/migrations/`.
+- Design tokens: colors are generated by `src/lib/appearance.ts` (Customize page); type, spacing and shadows live in
+  `tailwind.config.ts` and `src/styles/index.css`.
 - App icons are generated by `node scripts/generate-icons.mjs`.

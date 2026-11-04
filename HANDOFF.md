@@ -1,8 +1,7 @@
-# Handoff — Daybook (2026-11-04, evening)
+# Handoff — Daybook (2026-11-04, night)
 
-Read this first, then `CLAUDE.md` (note: `CLAUDE.md` still describes Supabase as live; today the app runs
-local-only, and the next task switches accounts back on). Everything below is committed and pushed to
-`main` on https://github.com/arushatre/schedule-planner unless listed under "In progress".
+Read this first, then `CLAUDE.md`. Everything below is committed and pushed to `main` on
+https://github.com/arushatre/schedule-planner.
 
 User's standing rules: no `Co-Authored-By` / Claude attribution in commits or PRs. ECC GateGuard hook is active
 (first edit/creation of each file asks for facts; new files → `ecc:council` per `~/.claude/CLAUDE.md`).
@@ -10,79 +9,72 @@ User's standing rules: no `Co-Authored-By` / Claude attribution in commits or PR
 ## Run it
 
 ```bash
-npm install && npm run dev                 # web, http://localhost:5173 (no sign-in today)
-npm run dev -- --host                      # also reachable from phone/iPad on the same Wi-Fi
-cd mobile && npm install && npx expo start # phone app via Expo Go (see mobile/README.md)
+npm install
+npm run db:start                 # Docker Desktop must be running
+cp .env.example .env             # values from: npx supabase status -o env
+npm run dev                      # http://localhost:5173, sign up on the sign-in screen
+cd mobile && npm install && cp .env.example .env.local && npx expo start   # phone, see mobile/README.md
 ```
 
-Verified at handoff: root `npx tsc -b --noEmit`, `npm run lint`, `npm test` (141 passed, 2 skipped),
-`npm run build`; mobile `npx tsc --noEmit`, `npx expo export --platform ios`, `npx expo-doctor` (20/20).
+Verified at handoff:
+- Root: `npx tsc -b --noEmit`, `npm run lint`, `npm test` (161 passed, 2 skipped), `npm run build`, `npm run db:test` (47/47).
+- Mobile: `npx tsc --noEmit`, `npx expo-doctor` (20/20), `npx expo export --platform ios`.
 
-## Done today (all pushed)
+## What changed this session
 
-1. **Local-only mode, Today redesign, Google Calendar push** (from the previous session).
-2. **Customize page** (`src/features/kit/KitPage.tsx`, `src/lib/appearance.ts`): every surface/text/accent token
-   is generated from a background tone + accent. Six presets (default *Cobalt & Porcelain*), mode, tone, accent,
-   heading/body font, corners, text size. Tailwind fonts/radii read CSS vars; stored at `daybook:appearance`.
-3. **Alerts + notification "agent"** (`src/lib/reminders.ts`, `src/hooks/useReminders.ts`,
-   `src/components/task/AlertPicker.tsx`): `Task.alerts: number[]` (minutes before due; untimed = 9:00),
-   catch-up of alerts missed while closed (only latest per task), daily 7:00 morning briefing, test button.
-   Decided by `ecc:council` (no launchd helper, no LLM).
-4. **Expo phone app** in `mobile/` (SDK 58, decided by `llm-council`): Today, All tasks, Settings, Task editor;
-   imports `../src` via the `@/` alias (`mobile/tsconfig.json`, `mobile/metro.config.js`); data in `expo-sqlite`
-   kv-store in the web backup format; local notifications planned by shared `planNotifications` (≤60 for iOS).
-   **Never run on a device** (no Xcode on this Mac); only typechecked and bundled.
+1. **Customize page and the Cobalt & Porcelain color scheme.** See `src/lib/appearance.ts` and `src/features/kit/KitPage.tsx`.
+2. **Alerts and the morning briefing.** See `src/lib/reminders.ts` and `src/hooks/useReminders.ts`. Decided by `ecc:council`.
+3. **Expo phone app** in `mobile/`. Decided by `llm-council`.
+4. **Accounts and live sync on every device.** Decided by `ecc:council`, unanimous: accounts over a no-account sync code.
+   - **Web:**
+     - Auth is back on (`AuthProvider` + `AuthGate`). `useTheme()` now runs in `AuthGate`, so the sign-in screens are themed.
+     - **Keep me signed in** for every sign-in method: the session goes to localStorage when on, sessionStorage when off (`src/lib/supabase.ts`, key `daybook:keepSignedIn`).
+     - **Forgot password** already existed.
+     - The account section in Settings is restored (`src/features/settings/AccountSection.tsx`).
+     - On first sign-in, the app offers to import both the legacy `daybook` DB and this week's local-only `daybook:local` cache.
+     - The auth screen is split into `MethodTabs.tsx` and `InboxNotice.tsx`.
+   - **Database:** migration `20261104120000_task_alerts.sql` adds `tasks.alerts smallint[]` (0–10080, at most 32 entries), and `save_task` writes it sorted with duplicates removed. pgTAP covers the round trip and range check. `config.toml` adds redirect URLs for the preview ports 5174 and 5180.
+   - **Phone:**
+     - `mobile/src/supabase.ts`: Keep me signed in uses the kv-store when on and memory when off.
+     - `screens/AuthScreen.tsx`: sign in, create account, and forgot password (the reset link goes to the web app's reset page via `EXPO_PUBLIC_WEB_URL`).
+     - `sync.ts` and `outbox.ts` mirror `SyncEngine`: ordered outbox, merging writes to the same record, backoff, rollback of refused writes, and pulls or realtime never overwriting pending writes. Pulls happen on sign-in, on foreground, on pull-to-refresh and on Sync now; realtime runs while the app is open.
+     - `cache.ts` keeps a per-account cache. Notifications are re-planned whenever tasks change.
+     - Pre-account phone data is uploaded if the account is empty, otherwise the app asks.
+     - Replacing the account from a backup is guarded and confirmed.
+   - **Phone UI:**
+     - Week strip, swipe to complete, an undo snackbar for complete and delete, and a subtasks checklist.
+     - Haptics, pull-to-refresh, and a priority marker on rows.
+     - New files in `mobile/src/components/`.
+   - **Shared:** `src/sync/records.ts` holds the pure `planLegacyImport` and `sameRecord`, used by the web and the phone.
+   - **How the work was split:**
+     - A web agent and a phone UI agent did the work.
+     - A manager agent built the phone sync, then reviewed the other two. It fixed four bugs: Keep me signed in only showed for password sign-in, undo lost "in progress", VoiceOver didn't announce the snackbar, and the replace-account import was unguarded.
+     - The orchestrator verified in the browser:
+       - sign-up and sign-in
+       - a task added by a second client appeared live
+       - checking it off reached the database
+       - the Settings account section
+       - the Forgot password email arrived in Mailpit
+       - signing back in restored the data
 
-## In progress: accounts + live sync on every device
+## Needs the user (blocking "works from anywhere")
 
-The user asked: same data on laptop, phone and iPad with live updates; prefer a no-account option if feasible,
-otherwise accounts with **Keep me signed in** and **Forgot password**; revise the phone app's features/UX with
-notifications; use subagents with a manager agent; no quality drop.
+1. **Hosted Supabase project.**
+   - Create it at supabase.com, then run `npx supabase login`, `link` and `db push`.
+   - Put the URL and anon key in `.env` and `mobile/.env.local`.
+   - Set the Site URL and Redirect URLs.
+   - Turn off "Confirm email" or set up SMTP (the built-in email only sends a few messages per hour).
+   - The steps are in the README under "Use it on every device, from anywhere".
+2. **Host the web app** so the phone and iPad browsers can reach it. GitHub Pages is proposed, but it isn't set up: that needs the user's OK, because the site would be public (data stays protected by RLS). It needs `base: '/schedule-planner/'`, the PWA scope, a Pages workflow, and the Pages origin added to the Supabase redirect URLs and the Google OAuth client.
+3. **Phone install:**
+   - Expo Go needs the laptop dev server running.
+   - A standalone install needs Xcode (not installed). With a free Apple ID it expires every 7 days.
 
-**`ecc:council` verdict (unanimous):** use email + password accounts. The no-account option (anonymous sign-in +
-shared sync code) is feasible but needs the same hosted backend, a rewrite of user_id RLS + pgTAP to space
-membership, and the code becomes a password with no reset. P2P/LAN is only live while both devices are on.
-Phone app: sync first, don't chase full parity; add week strip, swipe-to-complete, undo, subtasks/categories in
-the editor, sign-in; re-plan notifications after every sync/realtime change; leave insights, category manager and
-class-schedule editing to the web app (usable in the phone's browser).
+## Known limits and unverified items
 
-What already exists (switched off in commit 9e27899): `src/auth/*`, `src/features/auth/*` (password + magic link
-+ forgot/reset), `src/sync/` SyncEngine (Dexie cache + outbox + realtime), `createSupabaseRemote(client)` (reusable
-by the phone app; `remote.ts` only type-imports Dexie bits), migrations + RLS + pgTAP in `supabase/`. The old
-wiring is visible with `git show 29eb3cd:src/main.tsx` and `git show 29eb3cd:src/sync/SyncProvider.tsx`.
-
-Prepared (committed now): phone deps installed (`@supabase/supabase-js`, gesture-handler, reanimated, worklets,
-expo-haptics); `.claude/launch.json` has a `web-phone` config (`--host`, port 5180). Local Supabase runs via
-`npx supabase start` (Docker Desktop must be open); `.env` points at it.
-
-Remaining plan:
-1. **Web**
-   - Add a migration for the `alerts int[]` column and update `save_task` to write it.
-   - Update `mappers.ts` both ways (remove the `shortcut:` comment), regenerate `src/types/database.ts` with `npm run db:types`, and add a pgTAP check.
-   - Re-enable `AuthProvider`/`AuthGate` in `main.tsx`, with `SyncProvider` defaulting to `createSupabaseRemote`.
-   - Keep me signed in: a custom auth `storage` in `src/lib/supabase.ts` (localStorage when on, sessionStorage when off), with a checkbox on `AuthScreen`.
-   - Offer to import this week's local-only data (`daybook:local` IndexedDB) into the account on first sign-in, alongside the legacy `daybook` DB.
-   - Restore the Settings account/sync section (see `git diff 29eb3cd -- src/features/settings/SettingsDialog.tsx`).
-2. **Phone**
-   - `mobile/src/supabase.ts`, with the session in kv-store when "keep me signed in" is on and in memory when off.
-   - A sign-in / create-account / forgot-password screen. The reset link opens the web app's reset page.
-   - Sync in `store.ts`: kv-store outbox, `createSupabaseRemote`, a pull on launch and foreground, and realtime. Re-plan notifications after every change.
-   - UI: week strip, swipe to complete with undo, subtasks checklist, haptics, pull-to-refresh (`syncNow`).
-3. **Hosting (needs the user)**
-   - The user creates a free Supabase project and runs `npx supabase login`, `link` and `db push`.
-   - They provide the URL and anon key.
-   - In the Supabase dashboard: set the Site URL and redirect URLs, and either turn off confirm email or set SMTP. The built-in email only sends a few messages per hour.
-   - Host the web app (GitHub Pages workflow; needs the user's OK to enable Pages, which makes it public).
-   - Free projects pause after about a week of inactivity.
-4. Verify:
-   - Two browser sessions show live updates.
-   - Mobile typecheck, bundle and expo-doctor pass.
-   - RLS tests pass (`npm run db:test`).
-   - Update README / CLAUDE.md / this file, then commit and push.
-
-## Known limits
-
-- Web alerts only fire while the app is open; the phone app schedules real local notifications.
-- Free-Apple-ID sideload of the phone app expires every 7 days; Expo Go needs the laptop's dev server.
-- Google Calendar sync: OAuth token lasts ~1h; client ID not set up yet; never run against Google.
-- `src/lib/googleCalendar.ts` is ~355 lines (guideline 300).
+- The phone app has never run on a device. It is only typechecked, bundled and checked with expo-doctor, and its sync logic is unit-tested plus covered by a Node script against the local DB.
+- Web alerts only fire while the app is open. The phone schedules real local notifications (at most 60 queued).
+- With Keep me signed in off on the web, each new tab needs a fresh sign-in (sessionStorage is per tab).
+- The local `config.toml` redirect URL changes take effect after `npm run db:stop && npm run db:start`.
+- Local test account: `e2e@daybook.test` (local dev DB only; the password is in the session scratchpad, not the repo).
+- Google Calendar sync has never run against Google. `src/lib/googleCalendar.ts` is about 355 lines.
