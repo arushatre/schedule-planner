@@ -13,6 +13,9 @@ const fileEnv = loadEnv('test', process.cwd(), 'VITE_')
 
 export default defineConfig({
   base,
+  // NEXT_PUBLIC_ lets the Supabase Vercel integration's variables through. Never add 'SUPABASE_': that prefix
+  // would ship the integration's service-role key to the browser.
+  envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
   plugins: [
     react(),
     VitePWA({

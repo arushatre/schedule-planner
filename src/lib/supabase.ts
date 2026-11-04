@@ -2,12 +2,15 @@ import { createClient } from '@supabase/supabase-js'
 
 import type { Database } from '@/types/database'
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// The NEXT_PUBLIC_ names are what the Supabase integration adds to a Vercel project.
+const env = import.meta.env
+const url = env.VITE_SUPABASE_URL || env.NEXT_PUBLIC_SUPABASE_URL
+const anonKey =
+  env.VITE_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 /** Non-null when the app was built without Supabase settings; the auth gate shows it instead of crashing. */
 export const supabaseConfigError: string | null =
-  url && anonKey ? null : 'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Locally, copy .env.example to .env and fill it in; for the hosted site, set them as GitHub repository variables and re-run the deploy.'
+  url && anonKey ? null : 'Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. Locally, copy .env.example to .env and fill it in; on Vercel, add them under Settings → Environment Variables (or connect the Supabase integration) and redeploy; for GitHub Pages, set them as repository variables and re-run the workflow.'
 
 const KEEP_SIGNED_IN_KEY = 'daybook:keepSignedIn'
 
