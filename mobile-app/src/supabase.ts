@@ -38,8 +38,6 @@ const authStorage: SupportedStorage = {
   },
 }
 
-export const keepSignedIn = (): boolean => keep
-
 /** Call before signing in; it decides where the new session is stored. */
 export function setKeepSignedIn(on: boolean): void {
   keep = on

@@ -7,7 +7,7 @@ import type { AuthFailure } from '@/auth/errors'
 import { useSession } from '@/auth/useSession'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { cx } from '@/lib/cx'
-import { getKeepSignedIn, setKeepSignedIn } from '@/lib/supabase'
+import { setKeepSignedIn } from '@/lib/supabase'
 import { useOnline } from '@/hooks/useOnline'
 import { useUiStore } from '@/store/ui'
 import { AuthCard, AuthField, Callout, PasswordField, SubmitButton, TextLink, fade } from './AuthParts'
@@ -27,7 +27,8 @@ export function AuthScreen() {
   const [mode, setMode] = useState<Mode>('sign_in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [keepSignedIn, setKeep] = useState(getKeepSignedIn)
+  // Starts ticked on every sign-in, so one untick on a shared computer never sticks.
+  const [keepSignedIn, setKeep] = useState(true)
   const [touched, setTouched] = useState({ email: false, password: false })
   const [submitted, setSubmitted] = useState(false)
   const [pending, setPending] = useState(false)

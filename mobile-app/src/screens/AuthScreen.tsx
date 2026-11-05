@@ -4,7 +4,7 @@ import type { TextInputProps } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { toAuthFailure, validateEmail, validatePassword } from '@/auth/errors'
-import { keepSignedIn, setKeepSignedIn, supabase, webUrl } from '../supabase'
+import { setKeepSignedIn, supabase, webUrl } from '../supabase'
 import { useTheme } from '../theme'
 import { Button, Card, Chip, Text } from '../ui'
 
@@ -54,7 +54,8 @@ export function AuthScreen() {
   const [mode, setMode] = useState<Mode>('sign_in')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [keep, setKeep] = useState(keepSignedIn)
+  // Starts ticked on every sign-in, so one untick never sticks.
+  const [keep, setKeep] = useState(true)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
 
