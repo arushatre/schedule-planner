@@ -3,9 +3,9 @@ import { useMemo } from 'react'
 
 import { ClassRow } from '@/components/task/ClassBits'
 import { QuickAdd } from '@/components/task/QuickAdd'
-import { TaskRow } from '@/components/task/TaskRow'
+import { SortableTaskList } from '@/components/task/TaskRow'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { compareByDue, expandOccurrences } from '@/lib/recurrence'
+import { compareByOrder, expandOccurrences } from '@/lib/recurrence'
 import { blocksOn } from '@/lib/schedule'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
@@ -15,7 +15,7 @@ export function DayPanel({ date }: { date: string }) {
   const tasks = useTasksStore((state) => state.tasks)
   const classBlocks = useTasksStore((state) => state.classBlocks)
   const showClasses = useUiStore((state) => state.showClasses)
-  const occs = useMemo(() => expandOccurrences(tasks, date, date).sort(compareByDue), [tasks, date])
+  const occs = useMemo(() => expandOccurrences(tasks, date, date).sort(compareByOrder), [tasks, date])
   const classes = useMemo(() => (showClasses ? blocksOn(classBlocks, date) : []), [classBlocks, showClasses, date])
 
   return (
@@ -31,11 +31,7 @@ export function DayPanel({ date }: { date: string }) {
       {occs.length === 0 ? (
         <EmptyState icon={CalendarDays} title="Nothing scheduled" description="Add a task above to plan this day." />
       ) : (
-        <div className="grid gap-2">
-          {occs.map((occ) => (
-            <TaskRow key={occ.key} occ={occ} hideDate />
-          ))}
-        </div>
+        <SortableTaskList occs={occs} />
       )}
     </div>
   )

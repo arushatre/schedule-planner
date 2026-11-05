@@ -3,7 +3,8 @@ import { create } from 'zustand'
 import { withUuidIds } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import { isRecurring } from '@/lib/recurrence'
-import { makeTask } from '@/lib/tasks'
+import { makeTask, nextSortOrder } from '@/lib/tasks'
+import type { OrderUpdate } from '@/lib/tasks'
 import type { PaletteKey } from '@/lib/palette'
 import type { ActivityEvent } from '@/lib/activity'
 import type { ActivityTracker } from '@/sync/activity'
@@ -50,6 +51,8 @@ interface TasksState {
 
   createTask: (draft: TaskDraft) => Promise<Task>
   saveTask: (task: Task) => Promise<void>
+  /** Applies drag-to-reorder positions ("My order"). */
+  reorderTasks: (updates: OrderUpdate[]) => Promise<void>
   deleteTasks: (ids: string[]) => Promise<Undo>
   setOccurrenceDone: (occ: Occurrence, done: boolean) => Promise<Undo>
   setOccurrenceStatus: (occ: Occurrence, status: Status) => Promise<Undo>
@@ -204,13 +207,24 @@ export const useTasksStore = create<TasksState>()((set, get) => {
     syncNow: () => sync().sync(),
 
     createTask: async (draft) => {
-      const task = makeTask(draft)
+      const task = { ...makeTask(draft), sortOrder: nextSortOrder(get().tasks) }
       await persist([task])
       return task
     },
 
     saveTask: async (task) => {
-      await persist([task])
+      // A task the store hasn't seen yet is new: it joins the end of "My order".
+      const isNew = !get().tasks.some((existing) => existing.id === task.id)
+      await persist([isNew ? { ...task, sortOrder: nextSortOrder(get().tasks) } : task])
+    },
+
+    reorderTasks: async (updates) => {
+      const byId = new Map(updates.map((update) => [update.id, update.sortOrder]))
+      const changed = get().tasks.flatMap((task) => {
+        const sortOrder = byId.get(task.id)
+        return sortOrder === undefined || sortOrder === task.sortOrder ? [] : [{ ...task, sortOrder }]
+      })
+      if (changed.length > 0) await persist(changed)
     },
 
     deleteTasks: async (ids) => {

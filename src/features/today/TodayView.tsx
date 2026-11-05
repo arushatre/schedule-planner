@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import { QuickAdd } from '@/components/task/QuickAdd'
-import { TaskRow } from '@/components/task/TaskRow'
+import { SortableTaskList, TaskRow } from '@/components/task/TaskRow'
 import { Button } from '@/components/ui/Button'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Icon } from '@/components/ui/Icon'
@@ -13,7 +13,7 @@ import { useTaskActions } from '@/hooks/useTaskActions'
 import { cx } from '@/lib/cx'
 import { WEEK_OPTIONS, formatTime, friendlyDate, fromDateStr, greetingFor, shiftDate, toDateStr, todayStr } from '@/lib/dates'
 import { readStored, writeStored } from '@/lib/persist'
-import { compareByDue, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
+import { compareByDue, compareByOrder, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
 import { computeStats } from '@/lib/stats'
 import { categoryFor } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
@@ -24,6 +24,7 @@ import { StreakButton } from './StreakButton'
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
+const byOrder = (list: Occurrence[]) => [...list].sort(compareByOrder)
 const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
 
 function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
@@ -208,7 +209,8 @@ export function TodayView() {
   }, [tasks, today, weekStart])
 
   const isToday = selected === today
-  const selectedDay = isToday ? todays : byDue(week.filter((occ) => occ.date === selected))
+  // Day lists follow "My order"; Next up, Overdue and the schedule stay in time order.
+  const selectedDay = byOrder(isToday ? todays : week.filter((occ) => occ.date === selected))
   const selectedLabel = isToday ? 'Tasks' : friendlyDate(selected, today)
   const doneToday = todays.filter((occ) => occ.done).length
   const nowTime = format(new Date(), 'HH:mm')
@@ -219,6 +221,7 @@ export function TodayView() {
   for (const occ of upcoming) {
     if (occ.date) upcomingByDate.set(occ.date, [...(upcomingByDate.get(occ.date) ?? []), occ])
   }
+  for (const [date, occs] of upcomingByDate) upcomingByDate.set(date, byOrder(occs))
 
   const shiftWeek = (weeks: number) => {
     const offset = weeks === 0 ? 0 : weekOffset + weeks
@@ -270,7 +273,7 @@ export function TodayView() {
                   />
                 </div>
               ) : (
-                <TaskList occs={selectedDay} hideDate />
+                <SortableTaskList occs={selectedDay} />
               )}
             </div>
           </Section>
@@ -284,7 +287,7 @@ export function TodayView() {
                   {[...upcomingByDate.entries()].map(([date, occs]) => (
                     <div key={date}>
                       <h3 className="mb-2 text-base font-medium text-fg-muted">{friendlyDate(date, today)}</h3>
-                      <TaskList occs={occs} hideDate />
+                      <SortableTaskList occs={occs} />
                     </div>
                   ))}
                 </div>

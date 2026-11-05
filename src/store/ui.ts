@@ -139,7 +139,7 @@ export const useUiStore = create<UiState>()((set, get) => ({
     set({ listMode })
   },
   filters: EMPTY_FILTERS,
-  sort: 'due',
+  sort: 'manual',
   group: 'date',
   setFilters: (patch) => set((state) => ({ filters: { ...state.filters, ...patch } })),
   clearFilters: () => set({ filters: EMPTY_FILTERS }),

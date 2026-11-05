@@ -1,6 +1,6 @@
 import type { Category, Occurrence, Priority, Status } from '@/types/model'
 import { PRIORITIES, PRIORITY_LABEL } from '@/types/model'
-import { compareByDue } from './recurrence'
+import { compareByDue, compareByOrder } from './recurrence'
 import { searchTaskIds } from './search'
 import { friendlyDate } from './dates'
 import { categoryFor } from './tasks'
@@ -25,7 +25,7 @@ export const EMPTY_FILTERS: Filters = {
   query: '',
 }
 
-export type SortKey = 'due' | 'priority' | 'created'
+export type SortKey = 'manual' | 'due' | 'priority' | 'created'
 export type GroupKey = 'none' | 'date' | 'category' | 'priority'
 
 export function occurrenceStatus(occ: Occurrence): Status {
@@ -75,6 +75,8 @@ const PRIORITY_RANK: Record<Priority, number> = { urgent: 0, high: 1, medium: 2,
 export function sortOccurrences(occurrences: Occurrence[], sort: SortKey): Occurrence[] {
   const copy = [...occurrences]
   switch (sort) {
+    case 'manual':
+      return copy.sort(compareByOrder)
     case 'due':
       return copy.sort(compareByDue)
     case 'priority':

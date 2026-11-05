@@ -2,7 +2,7 @@ import { CalendarClock, CheckCheck, ListChecks, ListFilter, Plus, Search, Trash2
 import { useEffect, useMemo, useState } from 'react'
 
 import { CategoryDot } from '@/components/task/TaskBits'
-import { TaskRow } from '@/components/task/TaskRow'
+import { SortableTaskList, TaskRow } from '@/components/task/TaskRow'
 import { Button } from '@/components/ui/Button'
 import { DatePicker } from '@/components/ui/DatePicker'
 import { Dialog } from '@/components/ui/Dialog'
@@ -36,6 +36,7 @@ const GROUP_OPTIONS: SelectOption<GroupKey>[] = [
 ]
 
 const SORT_OPTIONS: SelectOption<SortKey>[] = [
+  { value: 'manual', label: 'My order' },
   { value: 'due', label: 'Sort by due date' },
   { value: 'priority', label: 'Sort by priority' },
   { value: 'created', label: 'Sort by newest' },
@@ -302,12 +303,15 @@ export function ListView() {
                   <span className="tabular font-sans text-sm text-fg-subtle">{bucket.occurrences.length}</span>
                 </h2>
               )}
-              <div className="grid gap-2">
-                {bucket.occurrences.map((occ) => (
+              {/* Drag handles only in "My order", and not while picking tasks in bulk. */}
+              <SortableTaskList
+                occs={bucket.occurrences}
+                disabled={sort !== 'manual' || selecting}
+                render={(occ, handle) => (
                   <TaskRow
-                    key={occ.key}
                     occ={occ}
                     hideDate={group === 'date'}
+                    dragHandle={handle}
                     selectable={selecting}
                     selected={selected.has(occ.key)}
                     onSelect={(value) =>
@@ -319,8 +323,8 @@ export function ListView() {
                       })
                     }
                   />
-                ))}
-              </div>
+                )}
+              />
             </section>
           ))}
         </div>

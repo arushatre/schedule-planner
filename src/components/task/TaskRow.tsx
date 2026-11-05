@@ -1,5 +1,10 @@
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { differenceInCalendarDays } from 'date-fns'
-import { Bell, ClockAlert, Repeat } from 'lucide-react'
+import { Bell, ClockAlert, GripVertical, Repeat } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import { Checkbox } from '@/components/ui/Checkbox'
 import { Icon } from '@/components/ui/Icon'
@@ -8,7 +13,7 @@ import { useTaskFocus } from '@/hooks/useTaskFocus'
 import { cx } from '@/lib/cx'
 import { formatTime, friendlyDate, fromDateStr, todayStr } from '@/lib/dates'
 import { isOverdue, isRecurring } from '@/lib/recurrence'
-import { UNCATEGORIZED, categoryFor, subtaskProgress } from '@/lib/tasks'
+import { UNCATEGORIZED, categoryFor, orderAfterMove, subtaskProgress } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { Occurrence } from '@/types/model'
@@ -22,9 +27,11 @@ interface TaskRowProps {
   onSelect?: (selected: boolean) => void
   /** Hide the date in contexts where it is already the heading. */
   hideDate?: boolean
+  /** Drag handle from SortableTaskList, shown at the right edge. */
+  dragHandle?: ReactNode
 }
 
-export function TaskRow({ occ, selectable = false, selected = false, onSelect, hideDate = false }: TaskRowProps) {
+export function TaskRow({ occ, selectable = false, selected = false, onSelect, hideDate = false, dragHandle }: TaskRowProps) {
   const categories = useTasksStore((state) => state.categories)
   const openEditor = useUiStore((state) => state.openEditor)
   const { setDone } = useTaskActions()
@@ -108,6 +115,70 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
         </span>
       </button>
       <PriorityMark priority={task.priority} />
+      {dragHandle}
     </div>
+  )
+}
+
+function SortableItem({ occ, render }: { occ: Occurrence; render: (occ: Occurrence, handle: ReactNode) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: occ.key })
+  const handle = (
+    <button
+      type="button"
+      ref={setActivatorNodeRef}
+      {...attributes}
+      {...listeners}
+      aria-label={`Reorder ${occ.task.title}`}
+      className="-my-1 -mr-1 cursor-grab touch-none self-center rounded-md p-1 text-fg-subtle transition-colors hover:bg-sunken hover:text-fg active:cursor-grabbing"
+    >
+      <Icon icon={GripVertical} size={16} />
+    </button>
+  )
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={cx(isDragging && 'relative z-10 opacity-90')}
+    >
+      {render(occ, handle)}
+    </div>
+  )
+}
+
+interface SortableTaskListProps {
+  /** Shown in "My order"; dragging saves new positions for the whole app. */
+  occs: Occurrence[]
+  /** Renders rows without handles (e.g. while another sort is active). */
+  disabled?: boolean
+  render?: (occ: Occurrence, handle: ReactNode) => ReactNode
+}
+
+const defaultRow = (occ: Occurrence, handle: ReactNode) => <TaskRow occ={occ} hideDate dragHandle={handle} />
+
+/** A task list you can reorder by dragging each row's grip (or Space + arrow keys on it). */
+export function SortableTaskList({ occs, disabled = false, render = defaultRow }: SortableTaskListProps) {
+  const reorderTasks = useTasksStore((state) => state.reorderTasks)
+  const { guard } = useTaskActions()
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  const keys = occs.map((occ) => occ.key)
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return
+    void guard(() => reorderTasks(orderAfterMove(occs, keys.indexOf(String(active.id)), keys.indexOf(String(over.id)))))
+  }
+
+  if (disabled) return <div className="grid gap-2">{occs.map((occ) => <div key={occ.key}>{render(occ, null)}</div>)}</div>
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+      <SortableContext items={keys} strategy={verticalListSortingStrategy}>
+        <div className="grid gap-2">
+          {occs.map((occ) => (
+            <SortableItem key={occ.key} occ={occ} render={render} />
+          ))}
+        </div>
+      </SortableContext>
+    </DndContext>
   )
 }

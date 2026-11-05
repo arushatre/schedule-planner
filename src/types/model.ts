@@ -64,6 +64,8 @@ export interface Task {
   reminderTime: string | null
   /** Alerts as minutes before the due moment (0 = at due time). */
   alerts: number[]
+  /** Manual position ("My order"): ascending; ties fall back to due order. */
+  sortOrder: number
   completedAt: number | null
   createdAt: number
   updatedAt: number

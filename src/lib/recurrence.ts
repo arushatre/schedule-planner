@@ -82,6 +82,11 @@ export function compareByDue(a: Occurrence, b: Occurrence): number {
   return a.task.createdAt - b.task.createdAt
 }
 
+/** "My order": the manual position set by dragging, then due order for ties. */
+export function compareByOrder(a: Occurrence, b: Occurrence): number {
+  return a.task.sortOrder - b.task.sortOrder || compareByDue(a, b)
+}
+
 /**
  * Everything the list and dashboard show: one-off tasks of any date (so old
  * overdue items never disappear), recurring tasks expanded over a window
