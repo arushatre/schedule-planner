@@ -1,14 +1,38 @@
-# Handoff — Daybook (2026-11-04, late)
+# Handoff — Daybook (2026-11-04, night)
 
-Read this first, then `CLAUDE.md`. Code on `main` (latest `269b10f`) is pushed to
-https://github.com/arushatre/schedule-planner. The design preview described below is **not** in git (on purpose).
+Read this first, then `CLAUDE.md`. Code on `main` is pushed to https://github.com/arushatre/schedule-planner.
+The design preview described below is **not** in git (on purpose).
 
 User's standing rules:
 - No `Co-Authored-By` / Claude attribution in commits or PRs.
 - ECC GateGuard hook is active. The first edit or creation of each file asks for facts. New files and risky actions → `ecc:council`, per `~/.claude/CLAUDE.md`.
 - The user wants questions asked when something is ambiguous ("don't guess"), and nothing committed or pushed unless they say so.
+- Test UI headlessly (Playwright script, no visible browser) unless the user asks to watch.
 
-## Where things stand (2026-11-04, evening)
+## Shipped this session (2026-11-04, late night)
+
+- **Folder move:** the phone app lives in `mobile-app/` (CI, lint ignore and docs updated). `mobile/` in older notes below means `mobile-app/`.
+- **Dashboard:** "Today" is now "Dashboard" on web and iPhone; the Daybook wordmark goes there. The schedule shows
+  24 hours in a scroll box centered on the current time (other days: first item or 9 AM).
+- **Customize (web) / Settings (iPhone):** heading font, body font and text size as plain choices; your name for the
+  greeting; switches for Next up, the schedule and Next 7 days; default priority and category for new tasks. Shared
+  model: `Personal` in `src/lib/appearance.ts`. The phone maps serif fonts to Georgia and the rest to the system font
+  (no bundled fonts).
+- **Drag to reorder ("My order"):** `tasks.sort_order` (migration `20261106120000_task_sort_order.sql`, pushed to
+  hosted Supabase). Web: grip on each row (Dashboard day list and each Next-7-days day, List page in "My order" (the
+  new default sort), Calendar day panel); Space + arrows also work. iPhone: three-line handle on the right, hold and
+  drag (Dashboard, List tab). Logic: `compareByOrder` (`src/lib/recurrence.ts`), `orderAfterMove`, `nextSortOrder`,
+  `dropIndex` (`src/lib/tasks.ts`). New tasks go to the end; Overdue, Next up and the schedule stay in time order.
+- **Fix:** category color dots were zero-size outside flex rows (`CategoryDot` is now `inline-block`).
+
+Not done / known limits:
+- The phone app still ships Expo's placeholder icons (blue chevron), not the Daybook mark.
+- The phone drag has no auto-scroll, and the phone app has still never run on a device or simulator (no Xcode).
+- A quick-add typed in the first moment after sign-in, before categories load, saves as Uncategorized (pre-existing).
+- `REMAINING-dashboard-customize.md` (untracked) is finished and can be deleted. `graphify-out/` (untracked) is a
+  knowledge graph of the repo from `/graphify`.
+
+## Shipped earlier today (2026-11-04, evening)
 
 **The home-screen redesign shipped on web and iPhone: palette C "Midnight & Bronze" + the New layout.**
 - Theme: `midnight` tone + `bronze` accent are the default preset (`src/lib/appearance.ts`); new tokens `highlight` (bronze progress / now line) and `--ember` (streak fire). The frame (sidebar, phone header) is now a quiet neutral, not navy.
@@ -102,7 +126,7 @@ npm install
 npm run db:start                 # Docker Desktop must be running
 cp .env.example .env             # values from: npx supabase status -o env
 npm run dev                      # http://localhost:5173 (the preview launch config may land on 5174)
-cd mobile && npm install && cp .env.example .env.local && npx expo start
+cd mobile-app && npm install && cp .env.example .env.local && npx expo start
 ```
 
 Verified at `269b10f`:
@@ -110,7 +134,7 @@ Verified at `269b10f`:
 - `npm run lint`
 - `npm test` (163 passed, 2 skipped)
 - `npm run build`
-- mobile `npx tsc --noEmit`
+- phone (`mobile-app/`) `npx tsc --noEmit`
 - `npx expo export --platform ios`
 
 ## Known limits and unverified items
