@@ -1,14 +1,16 @@
 import { useMemo, useState } from 'react'
-import { SectionList, TextInput, View } from 'react-native'
+import { ScrollView, TextInput, View } from 'react-native'
 
 import { friendlyDate } from '@/lib/dates'
-import { compareByDue, listOccurrences } from '@/lib/recurrence'
+import { compareByDue, compareByOrder, listOccurrences } from '@/lib/recurrence'
+import { orderAfterMove } from '@/lib/tasks'
 import type { Occurrence } from '@/types/model'
+import { ReorderList } from '../components/ReorderList'
 import { useToggleDone } from '../components/Snackbar'
 import { useRefreshControl } from '../components/useRefreshControl'
-import { useStore } from '../store'
+import { reorderTasks, useStore } from '../store'
 import { useTheme } from '../theme'
-import { Chip, TaskRow, Text } from '../ui'
+import { Card, Chip, TaskRow, Text } from '../ui'
 
 interface Props {
   today: string
@@ -24,6 +26,7 @@ export function ListScreen({ today, onOpen, onRefresh }: Props) {
   const { tasks, categories } = useStore()
   const [query, setQuery] = useState('')
   const [showDone, setShowDone] = useState(false)
+  const [dragging, setDragging] = useState(false)
 
   const sections = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -35,81 +38,75 @@ export function ListScreen({ today, onOpen, onRefresh }: Props) {
       const label = occ.date ? (occ.date < today ? 'Overdue' : friendlyDate(occ.date, today)) : 'No date'
       groups.set(label, [...(groups.get(label) ?? []), occ])
     }
-    return [...groups].map(([title, data]) => ({ title, data }))
+    // Sections stay in date order; tasks inside each follow "My order".
+    return [...groups].map(([title, data]) => ({ title, data: data.sort(compareByOrder) }))
   }, [tasks, today, query, showDone])
 
   return (
     <View style={{ flex: 1 }}>
-      <SectionList
-        sections={sections}
+      <ScrollView
+        scrollEnabled={!dragging}
         refreshControl={refreshControl}
-        keyExtractor={(occ) => occ.key}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 20, paddingBottom: 96 }}
-        stickySectionHeadersEnabled={false}
-        ListHeaderComponent={
-          <View style={{ gap: 16, marginBottom: 8 }}>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search tasks, notes, tags"
-              placeholderTextColor={theme.subtle}
-              clearButtonMode="while-editing"
-              style={{
-                color: theme.fg,
-                fontSize: 16 * theme.textScale,
-                backgroundColor: theme.raised,
-                borderColor: theme.line,
-                borderWidth: 1,
-                borderRadius: theme.radius(12),
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-              }}
-            />
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Chip label="To do" on={!showDone} onPress={() => setShowDone(false)} />
-              <Chip label="Done" on={showDone} onPress={() => setShowDone(true)} />
-            </View>
-          </View>
-        }
-        renderSectionHeader={({ section }) => (
-          <Text size="md" display tone={section.title === 'Overdue' ? 'overdue' : 'fg'} accessibilityRole="header" style={{ marginTop: 24, marginBottom: 8 }}>
-            {section.title}
-          </Text>
-        )}
-        renderItem={({ item, index, section }) => (
-          <View
+      >
+        <View style={{ gap: 16, marginBottom: 8 }}>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Search tasks, notes, tags"
+            placeholderTextColor={theme.subtle}
+            clearButtonMode="while-editing"
             style={{
+              color: theme.fg,
+              fontSize: 16 * theme.textScale,
               backgroundColor: theme.raised,
               borderColor: theme.line,
-              borderLeftWidth: 1,
-              borderRightWidth: 1,
-              borderTopWidth: index === 0 ? 1 : 0,
-              borderBottomWidth: index === section.data.length - 1 ? 1 : 0,
-              borderTopLeftRadius: index === 0 ? theme.radius(14) : 0,
-              borderTopRightRadius: index === 0 ? theme.radius(14) : 0,
-              borderBottomLeftRadius: index === section.data.length - 1 ? theme.radius(14) : 0,
-              borderBottomRightRadius: index === section.data.length - 1 ? theme.radius(14) : 0,
-              overflow: 'hidden',
+              borderWidth: 1,
+              borderRadius: theme.radius(12),
+              paddingHorizontal: 16,
+              paddingVertical: 12,
             }}
-          >
-            <TaskRow
-              occ={item}
-              categories={categories}
-              today={today}
-              last={index === section.data.length - 1}
-              onToggle={() => toggle(item)}
-              onOpen={() => onOpen(item.task.id)}
-            />
+          />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <Chip label="To do" on={!showDone} onPress={() => setShowDone(false)} />
+            <Chip label="Done" on={showDone} onPress={() => setShowDone(true)} />
           </View>
-        )}
-        ListEmptyComponent={
+        </View>
+        {sections.map((section) => (
+          <View key={section.title}>
+            <Text size="md" display tone={section.title === 'Overdue' ? 'overdue' : 'fg'} accessibilityRole="header" style={{ marginTop: 24, marginBottom: 8 }}>
+              {section.title}
+            </Text>
+            <Card>
+              <ReorderList
+                items={section.data}
+                keyOf={(occ) => occ.key}
+                labelOf={(occ) => occ.task.title}
+                onDragging={setDragging}
+                onMove={(from, to) => reorderTasks(orderAfterMove(section.data, from, to))}
+                renderItem={(occ, index, handle) => (
+                  <TaskRow
+                    occ={occ}
+                    categories={categories}
+                    today={today}
+                    last={index === section.data.length - 1}
+                    onToggle={() => toggle(occ)}
+                    onOpen={() => onOpen(occ.task.id)}
+                    handle={handle}
+                  />
+                )}
+              />
+            </Card>
+          </View>
+        ))}
+        {sections.length === 0 && (
           <View style={{ padding: 32, alignItems: 'center', gap: 8 }}>
             <Text display size="md">{query ? 'No matches' : showDone ? 'Nothing finished yet' : 'All clear'}</Text>
             <Text size="sm" tone="muted">{query ? 'Try a different word.' : 'Tasks you add show up here.'}</Text>
           </View>
-        }
-      />
+        )}
+      </ScrollView>
       {snackbar}
     </View>
   )

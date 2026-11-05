@@ -103,7 +103,7 @@ export function TaskEditor({ target, today, onClose }: Props) {
   const remove = () => {
     if (!existing) return
     deleteTask(existing.id)
-    offer(`Deleted “${existing.title}”`, () => saveTask(existing))
+    offer(`Deleted “${existing.title}”`, () => saveTask(existing, { restore: true }))
     onClose()
   }
   const progress = subtaskProgress(form)

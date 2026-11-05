@@ -5,6 +5,8 @@ import Storage from 'expo-sqlite/kv-store'
 import { serializeBackup, withUuidIds } from '@/lib/backup'
 import type { BackupData } from '@/lib/backup'
 import { isRecurring } from '@/lib/recurrence'
+import { nextSortOrder } from '@/lib/tasks'
+import type { OrderUpdate } from '@/lib/tasks'
 import type { ActivityEvent } from '@/lib/activity'
 import { createActivityTracker } from '@/sync/activity'
 import type { ActivityTracker } from '@/sync/activity'
@@ -243,11 +245,29 @@ export async function signOut(): Promise<void> {
   onUser(null)
 }
 
-export function saveTask(task: Task): void {
-  const next = { ...task, updatedAt: Date.now() }
+/** Saves a task; a new one joins the end of "My order" unless it's an undone delete coming back. */
+export function saveTask(task: Task, options: { restore?: boolean } = {}): void {
   const before = state.tasks.find((existing) => existing.id === task.id) ?? null
+  const placed = before === null && !options.restore ? { ...task, sortOrder: nextSortOrder(state.tasks) } : task
+  const next = { ...placed, updatedAt: Date.now() }
   touch('task')
   commit({ ...dataOf(), tasks: upsert(state.tasks, next) }, [{ entity: 'task', id: next.id, op: 'upsert', payload: next, before }])
+}
+
+/** Applies drag-to-reorder positions ("My order") in one commit. */
+export function reorderTasks(updates: OrderUpdate[]): void {
+  const byId = new Map(updates.map((update) => [update.id, update.sortOrder]))
+  const writes: Write[] = []
+  const tasks = state.tasks.map((task) => {
+    const sortOrder = byId.get(task.id)
+    if (sortOrder === undefined || sortOrder === task.sortOrder) return task
+    const next = { ...task, sortOrder, updatedAt: Date.now() }
+    writes.push({ entity: 'task', id: next.id, op: 'upsert', payload: next, before: task })
+    return next
+  })
+  if (writes.length === 0) return
+  touch('task')
+  commit({ ...dataOf(), tasks }, writes)
 }
 
 export function deleteTask(id: string): void {

@@ -21,6 +21,7 @@ const task = (id: string, title = id, extra: Partial<Task> = {}): Task => ({
   exceptions: {},
   reminderTime: null,
   alerts: [],
+  sortOrder: 0,
   completedAt: null,
   createdAt: 1,
   updatedAt: 1,

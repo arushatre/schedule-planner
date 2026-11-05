@@ -4,17 +4,18 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native'
 import Storage from 'expo-sqlite/kv-store'
 
 import { formatTime, friendlyDate, fromDateStr, greetingFor, shiftDate } from '@/lib/dates'
-import { compareByDue, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
+import { compareByDue, compareByOrder, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
 import { parseQuickAdd } from '@/lib/quickAdd'
 import { computeStats } from '@/lib/stats'
-import { categoryFor, defaultCategoryId, makeTask } from '@/lib/tasks'
+import { categoryFor, defaultCategoryId, makeTask, orderAfterMove } from '@/lib/tasks'
 import type { Occurrence } from '@/types/model'
+import { ReorderList } from '../components/ReorderList'
 import { useToggleDone } from '../components/Snackbar'
 import { StreakBadge } from '../components/StreakSheet'
 import { TodaySchedule } from '../components/TodaySchedule'
 import { useRefreshControl } from '../components/useRefreshControl'
 import { WeekStrip } from '../components/WeekStrip'
-import { saveTask, useStore } from '../store'
+import { reorderTasks, saveTask, useStore } from '../store'
 import { useTheme } from '../theme'
 import { Card, Section, TaskRow, Text } from '../ui'
 
@@ -26,6 +27,7 @@ interface Props {
 }
 
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
+const byOrder = (list: Occurrence[]) => [...list].sort(compareByOrder)
 const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
 
 export function TodayScreen({ today, onOpen, onRefresh }: Props) {
@@ -34,6 +36,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
   const { personal } = prefs
   const [overdueOpen, setOverdueOpen] = useState(() => Storage.getItemSync(OVERDUE_OPEN_KEY) !== 'false')
   const [draft, setDraft] = useState('')
+  const [dragging, setDragging] = useState(false)
   const [selected, setSelected] = useState(today)
   const { toggle, snackbar } = useToggleDone()
   const refreshControl = useRefreshControl(onRefresh)
@@ -51,8 +54,11 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
     return {
       overdue: byDue(all.filter((occ) => isOverdue(occ, today))),
       todays: byDue(expandOccurrences(tasks, today, today)),
-      dayOccs: byDue(expandOccurrences(tasks, selected, selected)),
-      upcoming: byDue(all.filter((occ) => occ.date !== null && occ.date > today && occ.date <= shiftDate(today, 7) && !occ.done)),
+      // Day lists follow "My order"; Next up, Overdue and the schedule stay in time order.
+      dayOccs: byOrder(expandOccurrences(tasks, selected, selected)),
+      upcoming: all
+        .filter((occ) => occ.date !== null && occ.date > today && occ.date <= shiftDate(today, 7) && !occ.done)
+        .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? '') || compareByOrder(a, b)),
       stats: computeStats(tasks, today),
     }
   }, [tasks, today, selected])
@@ -103,9 +109,43 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
     </Card>
   )
 
+  // One reorderable run per date inside a single card; a row can't be dragged to another date.
+  const sortable = (occs: Occurrence[], showDate = false) => {
+    const runs = new Map<string, Occurrence[]>()
+    for (const occ of occs) runs.set(occ.date ?? '', [...(runs.get(occ.date ?? '') ?? []), occ])
+    const lastKey = occs[occs.length - 1]?.key
+    return (
+      <Card>
+        {[...runs].map(([date, run]) => (
+          <ReorderList
+            key={date}
+            items={run}
+            keyOf={(occ) => occ.key}
+            labelOf={(occ) => occ.task.title}
+            onDragging={setDragging}
+            onMove={(from, to) => reorderTasks(orderAfterMove(run, from, to))}
+            renderItem={(occ, _index, handle) => (
+              <TaskRow
+                occ={occ}
+                categories={categories}
+                today={today}
+                showDate={showDate}
+                last={occ.key === lastKey}
+                onToggle={() => toggle(occ)}
+                onOpen={() => onOpen(occ.task.id)}
+                handle={handle}
+              />
+            )}
+          />
+        ))}
+      </Card>
+    )
+  }
+
   return (
     <View style={{ flex: 1 }}>
       <ScrollView
+        scrollEnabled={!dragging}
         contentContainerStyle={{ padding: 20, paddingBottom: 96 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={refreshControl}
@@ -196,7 +236,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
 
         <Section title={dayTitle} count={dayOccs.length}>
           {dayOccs.length > 0 ? (
-            list(dayOccs)
+            sortable(dayOccs)
           ) : (
             <Card>
               <View style={{ padding: 32, alignItems: 'center', gap: 8 }}>
@@ -213,7 +253,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
 
         {personal.showUpcoming && isToday && upcoming.length > 0 && (
           <Section title="Next 7 days" count={upcoming.length}>
-            {list(upcoming, true)}
+            {sortable(upcoming, true)}
           </Section>
         )}
       </ScrollView>
