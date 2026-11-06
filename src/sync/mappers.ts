@@ -46,6 +46,9 @@ export function taskToPayload(task: Task): Json {
     reminder_time: task.reminderTime,
     alerts: task.alerts,
     sort_order: task.sortOrder,
+    // Tasks cached by an older app version lack these; leaving the keys out makes save_task keep the stored values.
+    ...('focusDate' in task && { focus_date: task.focusDate }),
+    ...('focusNote' in task && { focus_note: task.focusNote }),
     completed_at: task.completedAt === null ? null : toIso(task.completedAt),
     created_at: toIso(task.createdAt),
     subtasks: task.subtasks.map((subtask) => ({ id: subtask.id, title: subtask.title, done: subtask.done })),
@@ -81,6 +84,8 @@ export function rowToTask(row: TaskRowWithChildren): Task {
     reminderTime: toHm(row.reminder_time),
     alerts: row.alerts,
     sortOrder: row.sort_order,
+    focusDate: row.focus_date,
+    focusNote: row.focus_note,
     completedAt: row.completed_at === null ? null : toMs(row.completed_at),
     createdAt: toMs(row.created_at),
     updatedAt: toMs(row.updated_at),

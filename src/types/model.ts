@@ -66,6 +66,10 @@ export interface Task {
   alerts: number[]
   /** Manual position ("My order"): ascending; ties fall back to due order. */
   sortOrder: number
+  /** The day (YYYY-MM-DD) this task is pinned to "Focus for today"; null when not pinned. */
+  focusDate: string | null
+  /** A short note shown under the task in Focus; stays with the task when it is unpinned. */
+  focusNote: string
   completedAt: number | null
   createdAt: number
   updatedAt: number

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { makeTask } from '@/lib/tasks'
-import type { Category, ClassBlock } from '@/types/model'
+import type { Category, ClassBlock, Task } from '@/types/model'
 import { categoryToRow, classBlockToRow, rowToCategory, rowToClassBlock, rowToTask, taskToPayload } from './mappers'
 import type { TaskRowWithChildren } from './mappers'
 
@@ -27,6 +27,8 @@ describe('task mapping', () => {
     reminderTime: '16:30',
     alerts: [0, 60, 1440],
     sortOrder: 2.5,
+    focusDate: '2026-10-02',
+    focusNote: 'Intro first',
     createdAt: Date.parse('2026-09-01T08:00:00.000Z'),
   })
 
@@ -41,12 +43,23 @@ describe('task mapping', () => {
       tags: ['english', 'school'],
       alerts: [0, 60, 1440],
       sort_order: 2.5,
+      focus_date: '2026-10-02',
+      focus_note: 'Intro first',
       created_at: '2026-09-01T08:00:00.000Z',
     })
     expect(payload.overrides).toEqual([
       { occurrence_date: '2026-10-05', completed: true, moved_to: '2026-10-06' },
       { occurrence_date: '2026-10-07', completed: false, moved_to: '2026-10-08' },
     ])
+  })
+
+  it('leaves out focus fields a task cached by an older app version lacks', () => {
+    const old: Partial<Task> = { ...task }
+    delete old.focusDate
+    delete old.focusNote
+    const payload = taskToPayload(old as Task) as Record<string, unknown>
+    expect(payload).not.toHaveProperty('focus_date')
+    expect(payload).not.toHaveProperty('focus_note')
   })
 
   it('stores non-UUID category ids (the Uncategorized sentinel) as null', () => {
@@ -75,6 +88,8 @@ describe('task mapping', () => {
       reminder_time: '16:30:00',
       alerts: [0, 60, 1440],
       sort_order: 2.5,
+      focus_date: '2026-10-02',
+      focus_note: 'Intro first',
       completed_at: null,
       created_at: '2026-09-01T08:00:00+00:00',
       updated_at: NOW,
