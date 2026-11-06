@@ -13,3 +13,7 @@ coverage
 # Environment (secrets). .env.example is the committed template.
 .env*
 !.env.example
+
+# Local working notes and the graphify knowledge graph; kept on this machine, not on GitHub.
+HANDOFF.md
+graphify-out/
