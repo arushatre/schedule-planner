@@ -25,7 +25,7 @@ import { cx } from '@/lib/cx'
 import { formatTime, friendlyDate, todayStr } from '@/lib/dates'
 import { occurrenceStatus } from '@/lib/filters'
 import { isOverdue, isRecurring } from '@/lib/recurrence'
-import { UNCATEGORIZED, categoryFor, subtaskProgress } from '@/lib/tasks'
+import { categoryFor, subtaskProgress } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import { STATUSES, STATUS_LABEL } from '@/types/model'
@@ -70,14 +70,10 @@ function Card({ occ }: { occ: Occurrence }) {
   const { setDone } = useTaskActions()
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: occ.key, data: { occ } satisfies DragData })
   const overdue = isOverdue(occ, todayStr())
-  const categories = useTasksStore((state) => state.categories)
-  const category = categoryFor(occ.task.categoryId, categories)
 
   return (
     <div
       ref={setNodeRef}
-      // The same light wash of the category color as task rows.
-      style={category === UNCATEGORIZED ? undefined : { background: `color-mix(in srgb, rgb(var(--cat-${category.colorKey})) var(--tint), rgb(var(--raised)))` }}
       {...listeners}
       {...attributes}
       {...focusHandlers}

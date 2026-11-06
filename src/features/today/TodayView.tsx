@@ -71,7 +71,7 @@ function NextUp({ occ }: { occ: Occurrence }) {
     <section aria-label="Next up" className="flex items-center gap-4 rounded-lg border border-line bg-raised px-5 py-4 shadow-card">
       <div className="min-w-0 flex-1">
         <p className="text-sm text-fg-muted">Next up{occ.task.dueTime ? ` · ${formatTime(occ.task.dueTime)}` : ''}</p>
-        <p className="truncate font-display text-xl font-semibold">{occ.task.title}</p>
+        <p className="truncate font-display text-lg">{occ.task.title}</p>
         <p className="mt-0.5 inline-flex items-center gap-1.5 text-sm text-fg-muted">
           <span className="h-2 w-2 rounded-full" style={{ background: `rgb(var(--cat-${category.colorKey}))` }} />
           {category.name}

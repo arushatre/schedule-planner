@@ -83,9 +83,9 @@ eduroam often block device-to-device traffic; a phone hotspot works around that.
 ## What's in it
 
 - **Dashboard** (the home screen): greeting with progress and a streak (click it for your history), a week strip,
-  Next up, **Pinned tasks**, today's tasks, Next 7 days, a collapsible Overdue list, and an hour-by-hour schedule
-  - **Pinned tasks**: pin any of today's tasks (the pin appears when you hover a row; on the phone it's ☆ on each
-    row, still labeled Focus for today there) to list it here, numbered in your order, with a short note. Edit the note with the pencil or a
+  Next up, **Focus for today**, today's tasks, Next 7 days, a collapsible Overdue list, and an hour-by-hour schedule
+  - **Focus for today**: star any of today's tasks (the star appears when you hover a row; on the phone it's ☆ on each
+    row) to list it under Focus, numbered in your order, with a short note. Edit the note with the pencil or a
     double-click (phone: tap it); Enter saves, Esc cancels. ✕ unpins; the note stays with the task. Pins last for
     that day only.
   - **Schedule**: timed tasks and classes on a 24-hour timeline centered on now. Items that overlap sit side by side,
@@ -93,11 +93,7 @@ eduroam often block device-to-device traffic; a phone hotspot works around that.
     subtasks, tags and notes; click (tap) a task to open it.
 - **My order**: drag a task's grip (web, or Space + arrow keys) or its handle (phone) to put tasks in your own order.
   It's the default sort and syncs across devices; new tasks go to the end.
-- **List** and **Board**: group, sort, AND-combined filters, fuzzy search, bulk actions, Kanban columns. The search box
-  also matches due times ("11" finds tasks due at 11:xx). A **Categories** button opens the category manager.
-- **Categories**: add, rename, recolor or archive them from the Categories button, or pick "+ New category" in the task
-  editor's Category dropdown.
-- **Dropdowns** filter as you type: "11" in a time picker shows only 11:00 AM–11:59 PM. Due time offers 11:59 PM first.
+- **List** and **Board**: group, sort, AND-combined filters, fuzzy search, bulk actions, Kanban columns
 - **Calendar**: Month, Week, Day and Agenda; drag chips to reschedule; weekly class schedule overlay
 - **Insights**: tasks completed per category by week
 - **Customize** (phone: Settings): color schemes (Midnight & bronze is the default) plus choices for light/dark,
