@@ -53,10 +53,10 @@ function FocusItem({ occ, n }: { occ: Occurrence; n: number }) {
             <span className="tabular text-fg-muted">{n}.</span> {task.title}
           </span>
         </button>
-        <button type="button" onClick={edit} aria-label={`Edit focus note for ${task.title}`} className={iconButton}>
+        <button type="button" onClick={edit} aria-label={`Edit note for ${task.title}`} className={iconButton}>
           <Icon icon={Pencil} size={14} />
         </button>
-        <button type="button" onClick={() => update({ focusDate: null })} aria-label={`Remove ${task.title} from focus`} className={iconButton}>
+        <button type="button" onClick={() => update({ focusDate: null })} aria-label={`Unpin ${task.title}`} className={iconButton}>
           <Icon icon={X} size={14} />
         </button>
       </div>
@@ -67,7 +67,7 @@ function FocusItem({ occ, n }: { occ: Occurrence; n: number }) {
           rows={2}
           maxLength={2000}
           placeholder="Add a note"
-          aria-label={`Focus note for ${task.title}`}
+          aria-label={`Note for ${task.title}`}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={save}
           onKeyDown={(event) => {
@@ -90,16 +90,16 @@ function FocusItem({ occ, n }: { occ: Occurrence; n: number }) {
   )
 }
 
-/** Today's pinned tasks, numbered in "My order", each with an optional note (double-click or the pencil to edit). */
+/** "Pinned tasks": today's pinned tasks, numbered in "My order", each with an optional note (double-click or the pencil to edit). */
 export function Focus({ occs }: { occs: Occurrence[] }) {
   return (
-    <section aria-label="Focus for today">
+    <section aria-label="Pinned tasks">
       <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-fg-muted">
-        Focus for today
+        Pinned tasks
         {occs.length > 0 && <span className="tabular font-medium text-fg-subtle">{occs.length}</span>}
       </h2>
       {occs.length === 0 ? (
-        <p className="text-base text-fg-muted">Star any of today’s tasks to keep it in focus here.</p>
+        <p className="text-base text-fg-muted">Pin any of today’s tasks to keep it here.</p>
       ) : (
         <ol className="grid gap-1 rounded-lg border border-line bg-raised p-1.5 shadow-card">
           {occs.map((occ, index) => (
