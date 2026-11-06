@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon'
 import { Select } from '@/components/ui/Select'
 import type { SelectOption } from '@/components/ui/Select'
 import { Field, Pill, Segmented, TagInput, TextArea, TextInput } from '@/components/ui/fields'
+import { NewCategoryForm } from '@/features/categories/CategoryManager'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { TIME_SLOTS, formatTime } from '@/lib/dates'
 import { defaultCategoryId, makeTask } from '@/lib/tasks'
@@ -82,6 +83,7 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
   const [errors, setErrors] = useState<{ title?: string; recurrence?: string }>({})
 
   const patch = (partial: Partial<FormState>) => setForm((current) => ({ ...current, ...partial }))
+  const [addingCategory, setAddingCategory] = useState(false)
 
   const categoryOptions = useMemo<SelectOption[]>(() => {
     const options = categories
@@ -221,13 +223,17 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
             />
           </Field>
           <Field label="Category">
-            <Select
-              ariaLabel="Category"
-              options={categoryOptions}
-              value={form.categoryId}
-              onChange={(categoryId) => patch({ categoryId })}
-              placeholder="Choose a category"
-            />
+            <div className="flex gap-2">
+              <Select
+                ariaLabel="Category"
+                options={categoryOptions}
+                value={form.categoryId}
+                onChange={(categoryId) => patch({ categoryId })}
+                placeholder="Choose a category"
+                className="min-w-0 flex-1"
+              />
+              <Button icon={Plus} aria-label="New category" title="New category" onClick={() => setAddingCategory(true)} className="h-10 shrink-0" />
+            </div>
           </Field>
           <Field label="Reminder">
             <Select
@@ -238,6 +244,16 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
             />
           </Field>
         </div>
+
+        {addingCategory && (
+          <NewCategoryForm
+            onCreated={(category) => {
+              patch({ categoryId: category.id })
+              setAddingCategory(false)
+            }}
+            onCancel={() => setAddingCategory(false)}
+          />
+        )}
 
         {form.dueDate && (
           <Field label="Alerts">

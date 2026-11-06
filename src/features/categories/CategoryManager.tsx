@@ -65,6 +65,51 @@ export function CategoryRow({ category }: { category: Category }) {
   )
 }
 
+/** Name + color for a new category, used by the task editor's + button. Not a <form>, since it sits inside the editor's form. */
+export function NewCategoryForm({ onCreated, onCancel }: { onCreated: (category: Category) => void; onCancel: () => void }) {
+  const createCategory = useTasksStore((state) => state.createCategory)
+  const { guard } = useTaskActions()
+  const [name, setName] = useState('')
+  const [color, setColor] = useState<PaletteKey>('teal')
+
+  const add = () => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    void guard(async () => onCreated(await createCategory(trimmed, color)))
+  }
+
+  return (
+    <div className="grid gap-3 rounded-md border border-dashed border-line-strong p-3">
+      <div className="flex gap-2">
+        <TextInput
+          autoFocus
+          aria-label="New category name"
+          placeholder="New category"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              add()
+            } else if (event.key === 'Escape') {
+              event.stopPropagation()
+              onCancel()
+            }
+          }}
+          className="h-9"
+        />
+        <Button size="sm" variant="primary" icon={Plus} disabled={!name.trim()} onClick={add}>
+          Add
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+      <Swatches value={color} onChange={setColor} />
+    </div>
+  )
+}
+
 export function CategoryManager() {
   const open = useUiStore((state) => state.dialog === 'categories')
   const openDialog = useUiStore((state) => state.openDialog)

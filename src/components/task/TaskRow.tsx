@@ -3,7 +3,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { differenceInCalendarDays } from 'date-fns'
-import { Bell, ClockAlert, GripVertical, Repeat, Star } from 'lucide-react'
+import { Bell, ClockAlert, GripVertical, Pin, Repeat } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -128,14 +128,14 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
             })
           }
           aria-pressed={pinned}
-          aria-label={pinned ? `Remove ${task.title} from focus` : `Focus on ${task.title} today`}
-          title={pinned ? 'Remove from focus' : 'Focus on this today'}
+          aria-label={pinned ? `Unpin ${task.title}` : `Pin ${task.title}`}
+          title={pinned ? 'Unpin' : 'Pin'}
           className={cx(
             '-my-1 self-center rounded-md p-1 transition-colors hover:bg-sunken hover:text-fg',
             pinned ? 'text-highlight' : 'text-fg-subtle opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
           )}
         >
-          <Icon icon={Star} size={16} className={pinned ? 'fill-current' : undefined} />
+          <Icon icon={Pin} size={16} className={pinned ? 'fill-current' : undefined} />
         </button>
       )}
       <PriorityMark priority={task.priority} />
