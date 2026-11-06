@@ -1,4 +1,4 @@
-import { CalendarClock, CheckCheck, ListChecks, ListFilter, Plus, Search, Trash2, X } from 'lucide-react'
+import { CalendarClock, CheckCheck, ListChecks, ListFilter, Plus, Search, Tags, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import { CategoryDot } from '@/components/task/TaskBits'
@@ -49,7 +49,7 @@ function toggle<T>(list: T[], value: T): T[] {
 export function ListView() {
   const tasks = useTasksStore((state) => state.tasks)
   const categories = useTasksStore((state) => state.categories)
-  const { filters, sort, group, listMode, setListMode, setFilters, clearFilters, setSort, setGroup, openEditor } =
+  const { filters, sort, group, listMode, setListMode, setFilters, clearFilters, setSort, setGroup, openEditor, openDialog } =
     useUiStore()
   const board = listMode === 'board'
   const searchFocusRequested = useUiStore((state) => state.searchFocusRequested)
@@ -124,6 +124,9 @@ export function ListView() {
           <Select ariaLabel="Group" options={GROUP_OPTIONS} value={group} onChange={setGroup} className="w-44" />
         )}
         <Select ariaLabel="Sort" options={SORT_OPTIONS} value={sort} onChange={setSort} className="w-44" />
+        <Button icon={Tags} onClick={() => openDialog('categories')}>
+          Categories
+        </Button>
         {!board && (
           <Button
             icon={CheckCheck}
