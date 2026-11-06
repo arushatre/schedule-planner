@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { EMPTY_FILTERS, activeFilterCount, applyFilters, groupOccurrences, sortOccurrences } from './filters'
 import { expandOccurrences, undatedOccurrences } from './recurrence'
+import { matchesQuery, searchTaskIds } from './search'
 import { dropIndex, makeTask, nextSortOrder, orderAfterMove } from './tasks'
 import type { Category } from '@/types/model'
 
@@ -133,5 +134,23 @@ describe('dropIndex (phone drag)', () => {
     expect(dropIndex(rows, 0, -50)).toEqual({ offset: 0, to: 0 })
     expect(dropIndex(rows, 0, 999)).toEqual({ offset: 200, to: 3 })
     expect(dropIndex(rows, 3, -999)).toEqual({ offset: -200, to: 0 })
+  })
+})
+
+describe('number search', () => {
+  it('matches labels by any word start', () => {
+    expect(matchesQuery('11:30 AM', '11')).toBe(true)
+    expect(matchesQuery('1:15 PM', '11')).toBe(false)
+    expect(matchesQuery('Group by category', 'cat')).toBe(true)
+    expect(matchesQuery('Work', '')).toBe(true)
+  })
+
+  it('finds tasks by due time', () => {
+    const late = makeTask({ title: 'Submit lab', categoryId: 'school', dueDate: '2026-09-22', dueTime: '23:59' })
+    const morning = makeTask({ title: 'Gym', categoryId: 'school', dueDate: '2026-09-22', dueTime: '11:00' })
+    const ids = searchTaskIds([late, morning], '11')
+    expect(ids.has(morning.id)).toBe(true)
+    expect(ids.has(late.id)).toBe(true) // 11:59 PM
+    expect(searchTaskIds([late, morning], '11:0').has(late.id)).toBe(false)
   })
 })
