@@ -261,12 +261,13 @@ export function TodayView() {
       />
 
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
-        <div className="grid gap-8">
+        {/* minmax(0,1fr) keeps a long Next up title truncated instead of widening the column under the schedule. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
           {personal.showNextUp && isToday && next && <NextUp occ={next} />}
           {isToday && <Focus occs={focused} />}
 
           <Section title={selectedLabel} count={selectedDay.length}>
-            <div className="grid gap-3">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-3">
               <QuickAdd dueDate={selected} label={isToday ? 'Add a task for today' : `Add a task for ${selectedLabel}`} />
               {selectedDay.length === 0 ? (
                 <div className="rounded-lg border border-line bg-raised shadow-card">
@@ -287,7 +288,7 @@ export function TodayView() {
               {upcoming.length === 0 ? (
                 <p className="text-base text-fg-muted">Nothing scheduled for the coming week.</p>
               ) : (
-                <div className="grid gap-6">
+                <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
                   {[...upcomingByDate.entries()].map(([date, occs]) => (
                     <div key={date}>
                       <h3 className="mb-2 text-base font-medium text-fg-muted">{friendlyDate(date, today)}</h3>
@@ -300,7 +301,7 @@ export function TodayView() {
           )}
         </div>
 
-        <div className="grid gap-8">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
           {overdue.length > 0 && <OverdueDropdown overdue={overdue} />}
           {personal.showSchedule && <Schedule date={selected} occs={selectedDay} />}
         </div>

@@ -193,11 +193,11 @@ export function SortableTaskList({ occs, disabled = false, render = defaultRow }
     void guard(() => reorderTasks(orderAfterMove(occs, keys.indexOf(String(active.id)), keys.indexOf(String(over.id)))))
   }
 
-  if (disabled) return <div className="grid gap-2">{occs.map((occ) => <div key={occ.key}>{render(occ, null)}</div>)}</div>
+  if (disabled) return <div className="grid grid-cols-[minmax(0,1fr)] gap-2">{occs.map((occ) => <div key={occ.key}>{render(occ, null)}</div>)}</div>
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
       <SortableContext items={keys} strategy={verticalListSortingStrategy}>
-        <div className="grid gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {occs.map((occ) => (
             <SortableItem key={occ.key} occ={occ} render={render} />
           ))}
