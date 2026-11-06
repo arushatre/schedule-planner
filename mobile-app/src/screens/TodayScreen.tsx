@@ -9,6 +9,7 @@ import { parseQuickAdd } from '@/lib/quickAdd'
 import { computeStats } from '@/lib/stats'
 import { categoryFor, defaultCategoryId, makeTask, orderAfterMove } from '@/lib/tasks'
 import type { Occurrence } from '@/types/model'
+import { FocusList, updateTask } from '../components/FocusList'
 import { ReorderList } from '../components/ReorderList'
 import { useToggleDone } from '../components/Snackbar'
 import { StreakBadge } from '../components/StreakSheet'
@@ -64,6 +65,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
   }, [tasks, today, selected])
 
   const doneToday = todays.filter((occ) => occ.done).length
+  const focused = byOrder(todays.filter((occ) => occ.task.focusDate === today))
   const nowTime = format(new Date(), 'HH:mm')
   const open = todays.filter((occ) => !occ.done)
   const next = open.find((occ) => occ.task.dueTime !== null && occ.task.dueTime >= nowTime) ?? open[0]
@@ -110,7 +112,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
   )
 
   // One reorderable run per date inside a single card; a row can't be dragged to another date.
-  const sortable = (occs: Occurrence[], showDate = false) => {
+  const sortable = (occs: Occurrence[], showDate = false, pinnable = false) => {
     const runs = new Map<string, Occurrence[]>()
     for (const occ of occs) runs.set(occ.date ?? '', [...(runs.get(occ.date ?? '') ?? []), occ])
     const lastKey = occs[occs.length - 1]?.key
@@ -134,6 +136,8 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
                 onToggle={() => toggle(occ)}
                 onOpen={() => onOpen(occ.task.id)}
                 handle={handle}
+                pinned={occ.task.focusDate === today}
+                onPin={pinnable ? () => updateTask(occ.task.id, { focusDate: occ.task.focusDate === today ? null : today }) : undefined}
               />
             )}
           />
@@ -189,6 +193,12 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
           </View>
         )}
 
+        {isToday && (
+          <Section title="Focus for today" count={focused.length > 0 ? focused.length : undefined}>
+            <FocusList occs={focused} categories={categories} onOpen={onOpen} />
+          </Section>
+        )}
+
         {/* Only shown when something is overdue; collapses, and the phone remembers that. */}
         {isToday && overdue.length > 0 && (
           <View style={{ marginTop: 32, gap: 8 }}>
@@ -236,7 +246,7 @@ export function TodayScreen({ today, onOpen, onRefresh }: Props) {
 
         <Section title={dayTitle} count={dayOccs.length}>
           {dayOccs.length > 0 ? (
-            sortable(dayOccs)
+            sortable(dayOccs, false, isToday)
           ) : (
             <Card>
               <View style={{ padding: 32, alignItems: 'center', gap: 8 }}>

@@ -3,7 +3,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { differenceInCalendarDays } from 'date-fns'
-import { Bell, ClockAlert, GripVertical, Repeat } from 'lucide-react'
+import { Bell, ClockAlert, GripVertical, Repeat, Star } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -29,12 +29,14 @@ interface TaskRowProps {
   hideDate?: boolean
   /** Drag handle from SortableTaskList, shown at the right edge. */
   dragHandle?: ReactNode
+  /** Show the star that pins the task to today's Focus (Dashboard, today only). */
+  pinnable?: boolean
 }
 
-export function TaskRow({ occ, selectable = false, selected = false, onSelect, hideDate = false, dragHandle }: TaskRowProps) {
+export function TaskRow({ occ, selectable = false, selected = false, onSelect, hideDate = false, dragHandle, pinnable = false }: TaskRowProps) {
   const categories = useTasksStore((state) => state.categories)
   const openEditor = useUiStore((state) => state.openEditor)
-  const { setDone } = useTaskActions()
+  const { setDone, guard } = useTaskActions()
   const focusHandlers = useTaskFocus(occ.task.id)
 
   const { task } = occ
@@ -44,6 +46,7 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
   const daysLate = overdue && occ.date ? differenceInCalendarDays(fromDateStr(today), fromDateStr(occ.date)) : 0
   const tinted = category !== UNCATEGORIZED
   const progress = subtaskProgress(task)
+  const pinned = task.focusDate === today
 
   return (
     <div
@@ -51,7 +54,7 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
       // A light wash of the category color; uncategorized tasks keep the plain card.
       style={tinted && !selected ? { background: `color-mix(in srgb, rgb(var(--cat-${category.colorKey})) var(--tint), rgb(var(--raised)))` } : undefined}
       className={cx(
-        'relative flex items-start gap-3 overflow-hidden rounded-md border border-line bg-raised py-2.5 pl-4 pr-3 shadow-card transition-colors hover:border-line-strong',
+        'group relative flex items-start gap-3 overflow-hidden rounded-md border border-line bg-raised py-2.5 pl-4 pr-3 shadow-card transition-colors hover:border-line-strong',
         overdue && 'shadow-[inset_2px_0_0_rgb(var(--fg))]',
         selected && 'border-accent/50 bg-accent-soft/50',
       )}
@@ -114,6 +117,27 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
           {progress.total > 0 && <ProgressBar done={progress.done} total={progress.total} />}
         </span>
       </button>
+      {pinnable && (
+        <button
+          type="button"
+          onClick={() =>
+            void guard(() => {
+              const { tasks, saveTask } = useTasksStore.getState()
+              const latest = tasks.find((existing) => existing.id === task.id) ?? task
+              return saveTask({ ...latest, focusDate: pinned ? null : today })
+            })
+          }
+          aria-pressed={pinned}
+          aria-label={pinned ? `Remove ${task.title} from focus` : `Focus on ${task.title} today`}
+          title={pinned ? 'Remove from focus' : 'Focus on this today'}
+          className={cx(
+            '-my-1 self-center rounded-md p-1 transition-colors hover:bg-sunken hover:text-fg',
+            pinned ? 'text-highlight' : 'text-fg-subtle opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
+          )}
+        >
+          <Icon icon={Star} size={16} className={pinned ? 'fill-current' : undefined} />
+        </button>
+      )}
       <PriorityMark priority={task.priority} />
       {dragHandle}
     </div>

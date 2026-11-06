@@ -122,10 +122,13 @@ interface RowProps {
   onOpen: () => void
   /** Drag handle from ReorderList, shown at the right edge. */
   handle?: ReactNode
+  /** Shows the star that pins the task to today's Focus (Dashboard, today only). */
+  onPin?: () => void
+  pinned?: boolean
 }
 
 /** Swipe right to toggle done; the circle still toggles on tap. Needs a GestureHandlerRootView above it. */
-export function TaskRow({ occ, categories, today, showDate, last, onToggle, onOpen, handle }: RowProps) {
+export function TaskRow({ occ, categories, today, showDate, last, onToggle, onOpen, handle, onPin, pinned = false }: RowProps) {
   const theme = useTheme()
   const swipe = useRef<SwipeableMethods>(null)
   const { task } = occ
@@ -216,6 +219,18 @@ export function TaskRow({ occ, categories, today, showDate, last, onToggle, onOp
             </Text>
           </View>
         </Pressable>
+        {onPin && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: pinned }}
+            accessibilityLabel={pinned ? `Remove ${task.title} from focus` : `Focus on ${task.title} today`}
+            onPress={onPin}
+            hitSlop={8}
+            style={({ pressed }) => ({ paddingHorizontal: 8, paddingVertical: 16, opacity: pressed ? 0.6 : 1 })}
+          >
+            <Text tone="subtle" style={pinned ? { color: theme.highlight } : undefined}>{pinned ? '★' : '☆'}</Text>
+          </Pressable>
+        )}
         {handle}
       </View>
     </Swipeable>

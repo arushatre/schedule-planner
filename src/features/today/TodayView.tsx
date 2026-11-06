@@ -19,6 +19,7 @@ import { categoryFor } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
 import { useUiStore } from '@/store/ui'
 import type { Occurrence } from '@/types/model'
+import { Focus } from './Focus'
 import { Schedule } from './Schedule'
 import { StreakButton } from './StreakButton'
 
@@ -26,6 +27,7 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
 const byOrder = (list: Occurrence[]) => [...list].sort(compareByOrder)
 const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
+const pinnableRow = (occ: Occurrence, handle: ReactNode) => <TaskRow occ={occ} hideDate dragHandle={handle} pinnable />
 
 function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
@@ -213,6 +215,7 @@ export function TodayView() {
   const selectedDay = byOrder(isToday ? todays : week.filter((occ) => occ.date === selected))
   const selectedLabel = isToday ? 'Tasks' : friendlyDate(selected, today)
   const doneToday = todays.filter((occ) => occ.done).length
+  const focused = byOrder(todays.filter((occ) => occ.task.focusDate === today))
   const nowTime = format(new Date(), 'HH:mm')
   const open = todays.filter((occ) => !occ.done)
   const next = open.find((occ) => occ.task.dueTime !== null && occ.task.dueTime >= nowTime) ?? open[0]
@@ -260,6 +263,7 @@ export function TodayView() {
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="grid gap-8">
           {personal.showNextUp && isToday && next && <NextUp occ={next} />}
+          {isToday && <Focus occs={focused} />}
 
           <Section title={selectedLabel} count={selectedDay.length}>
             <div className="grid gap-3">
@@ -273,7 +277,7 @@ export function TodayView() {
                   />
                 </div>
               ) : (
-                <SortableTaskList occs={selectedDay} />
+                <SortableTaskList occs={selectedDay} render={isToday ? pinnableRow : undefined} />
               )}
             </div>
           </Section>
