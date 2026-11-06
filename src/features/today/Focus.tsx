@@ -93,9 +93,9 @@ function FocusItem({ occ, n }: { occ: Occurrence; n: number }) {
 /** Today's pinned tasks, numbered in "My order", each with an optional note (double-click or the pencil to edit). */
 export function Focus({ occs }: { occs: Occurrence[] }) {
   return (
-    <section aria-label="Pinned tasks">
+    <section aria-label="Pinned Tasks">
       <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-fg-muted">
-        Pinned tasks
+        Pinned Tasks
         {occs.length > 0 && <span className="tabular font-medium text-fg-subtle">{occs.length}</span>}
       </h2>
       {occs.length === 0 ? (
