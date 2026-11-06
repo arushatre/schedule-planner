@@ -10,7 +10,6 @@ import { Icon } from '@/components/ui/Icon'
 import { Select } from '@/components/ui/Select'
 import type { SelectOption } from '@/components/ui/Select'
 import { Field, Pill, Segmented, TagInput, TextArea, TextInput } from '@/components/ui/fields'
-import { NewCategoryForm } from '@/features/categories/CategoryManager'
 import { useTaskActions } from '@/hooks/useTaskActions'
 import { TIME_SLOTS, formatTime } from '@/lib/dates'
 import { defaultCategoryId, makeTask } from '@/lib/tasks'
@@ -34,10 +33,7 @@ const timeOptions = (emptyLabel: string): SelectOption[] => [
   ...TIME_SLOTS.map((slot) => ({ value: slot, label: formatTime(slot) })),
 ]
 
-// 11:59 PM sits right after "No time": it's the usual end-of-day deadline.
-const DUE_TIME_OPTIONS: SelectOption[] = [{ value: '', label: 'No time' }, { value: '23:59', label: formatTime('23:59') }, ...timeOptions('').slice(1)]
-/** Picking this in the Category dropdown opens the new-category form instead. */
-const NEW_CATEGORY = '__new__'
+const DUE_TIME_OPTIONS = timeOptions('No time')
 const REMINDER_OPTIONS = timeOptions('No reminder')
 
 interface FormState {
@@ -86,10 +82,9 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
   const [errors, setErrors] = useState<{ title?: string; recurrence?: string }>({})
 
   const patch = (partial: Partial<FormState>) => setForm((current) => ({ ...current, ...partial }))
-  const [addingCategory, setAddingCategory] = useState(false)
 
   const categoryOptions = useMemo<SelectOption[]>(() => {
-    const options: SelectOption[] = categories
+    const options = categories
       .filter((category) => !category.archived || category.id === form.categoryId)
       .map((category) => ({
         value: category.id,
@@ -99,7 +94,6 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
     if (!options.some((option) => option.value === form.categoryId)) {
       options.push({ value: form.categoryId, label: 'Uncategorized', color: 'graphite' })
     }
-    options.push({ value: NEW_CATEGORY, label: '+ New category' })
     return options
   }, [categories, form.categoryId])
 
@@ -231,7 +225,7 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
               ariaLabel="Category"
               options={categoryOptions}
               value={form.categoryId}
-              onChange={(categoryId) => (categoryId === NEW_CATEGORY ? setAddingCategory(true) : patch({ categoryId }))}
+              onChange={(categoryId) => patch({ categoryId })}
               placeholder="Choose a category"
             />
           </Field>
@@ -244,16 +238,6 @@ function TaskForm({ task, dueDate, onClose }: { task: Task | null; dueDate: stri
             />
           </Field>
         </div>
-
-        {addingCategory && (
-          <NewCategoryForm
-            onCreated={(category) => {
-              patch({ categoryId: category.id })
-              setAddingCategory(false)
-            }}
-            onCancel={() => setAddingCategory(false)}
-          />
-        )}
 
         {form.dueDate && (
           <Field label="Alerts">
