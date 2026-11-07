@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { makeTask } from './tasks'
-import { expandOccurrences, isOverdue, listOccurrences, undatedOccurrences } from './recurrence'
+import { dashboardOccurrences, expandOccurrences, isOverdue, listOccurrences, undatedOccurrences } from './recurrence'
 import type { Task } from '@/types/model'
 
 const base = { title: 'T', categoryId: 'c1' }
@@ -141,5 +141,33 @@ describe('listOccurrences', () => {
     const habitDates = occs.filter((o) => o.task.id === habit.id).map((o) => o.date)
     expect(habitDates[0]).toBe('2026-09-14')
     expect(habitDates.at(-1)).toBe('2026-11-20')
+  })
+})
+
+describe('dashboardOccurrences', () => {
+  const today = '2026-11-07'
+  const titles = (tasks: Task[]) => dashboardOccurrences(tasks, today).map((occ) => occ.task.title)
+
+  it('keeps today (done too) and every unfinished later or undated task, but not overdue or old done ones', () => {
+    const tasks = [
+      makeTask({ ...base, title: 'today open', dueDate: today }),
+      makeTask({ ...base, title: 'today done', dueDate: today, status: 'done' }),
+      makeTask({ ...base, title: 'next month', dueDate: '2026-12-20' }),
+      makeTask({ ...base, title: 'no date', dueDate: null }),
+      makeTask({ ...base, title: 'overdue', dueDate: '2026-11-01' }),
+      makeTask({ ...base, title: 'future done', dueDate: '2026-11-09', status: 'done' }),
+      makeTask({ ...base, title: 'undated done', dueDate: null, status: 'done' }),
+    ]
+    expect(titles(tasks).sort()).toEqual(['next month', 'no date', 'today done', 'today open'])
+  })
+
+  it('shows a repeating task once, at today or its next date', () => {
+    const daily = makeTask({ ...base, title: 'daily', dueDate: '2026-11-01', recurrence: { kind: 'daily', weekdays: [], until: null } })
+    const weekly = makeTask({ ...base, title: 'weekly', dueDate: '2026-11-03', recurrence: { kind: 'weekly', weekdays: [], until: null } })
+    const occs = dashboardOccurrences([daily, weekly], today)
+    expect(occs.map((occ) => [occ.task.title, occ.date])).toEqual([
+      ['daily', today],
+      ['weekly', '2026-11-10'],
+    ])
   })
 })

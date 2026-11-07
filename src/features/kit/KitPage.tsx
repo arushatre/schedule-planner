@@ -184,10 +184,9 @@ function NameField() {
   )
 }
 
-const SECTIONS: { key: 'showNextUp' | 'showSchedule' | 'showUpcoming'; label: string }[] = [
+const SECTIONS: { key: 'showNextUp' | 'showSchedule'; label: string }[] = [
   { key: 'showNextUp', label: 'Next up card' },
   { key: 'showSchedule', label: 'Hour-by-hour schedule' },
-  { key: 'showUpcoming', label: 'Next 7 days' },
 ]
 
 // Customize page: the look, then the settings that shape your Dashboard and new tasks.

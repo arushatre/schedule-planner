@@ -13,7 +13,7 @@ import { useTaskActions } from '@/hooks/useTaskActions'
 import { cx } from '@/lib/cx'
 import { WEEK_OPTIONS, formatTime, friendlyDate, fromDateStr, greetingFor, shiftDate, toDateStr, todayStr } from '@/lib/dates'
 import { readStored, writeStored } from '@/lib/persist'
-import { compareByDue, compareByOrder, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
+import { compareByDue, compareByOrder, dashboardOccurrences, expandOccurrences, isOverdue, listOccurrences } from '@/lib/recurrence'
 import { computeStats } from '@/lib/stats'
 import { categoryFor } from '@/lib/tasks'
 import { useTasksStore } from '@/store/tasks'
@@ -27,7 +27,11 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
 const byOrder = (list: Occurrence[]) => [...list].sort(compareByOrder)
 const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
-const pinnableRow = (occ: Occurrence, handle: ReactNode) => <TaskRow occ={occ} hideDate dragHandle={handle} pinnable />
+// Today's rows hide their date and can be pinned; later tasks in the same list show their date.
+const dashboardRow = (occ: Occurrence, handle: ReactNode) => {
+  const isToday = occ.date === todayStr()
+  return <TaskRow occ={occ} hideDate={isToday} dragHandle={handle} pinnable={isToday} />
+}
 
 function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
@@ -198,33 +202,25 @@ export function TodayView() {
   const thisWeekStart = toDateStr(startOfWeek(fromDateStr(today), WEEK_OPTIONS))
   const weekStart = shiftDate(thisWeekStart, weekOffset * 7)
 
-  const { overdue, todays, week, upcoming, stats } = useMemo(() => {
-    const all = listOccurrences(tasks, today)
-    const weekEnd = shiftDate(today, 7)
-    return {
-      overdue: byDue(all.filter((occ) => isOverdue(occ, today))),
-      todays: byDue(expandOccurrences(tasks, today, today)),
-      week: expandOccurrences(tasks, weekStart, shiftDate(weekStart, 6)),
-      upcoming: byDue(all.filter((occ) => occ.date !== null && occ.date > today && occ.date <= weekEnd && !occ.done)),
-      stats: computeStats(tasks, today),
-    }
-  }, [tasks, today, weekStart])
+  const { overdue, todays, everything, week, stats } = useMemo(() => ({
+    overdue: byDue(listOccurrences(tasks, today).filter((occ) => isOverdue(occ, today))),
+    todays: byDue(expandOccurrences(tasks, today, today)),
+    everything: dashboardOccurrences(tasks, today),
+    week: expandOccurrences(tasks, weekStart, shiftDate(weekStart, 6)),
+    stats: computeStats(tasks, today),
+  }), [tasks, today, weekStart])
 
   const isToday = selected === today
-  // Day lists follow "My order"; Next up, Overdue and the schedule stay in time order.
-  const selectedDay = byOrder(isToday ? todays : week.filter((occ) => occ.date === selected))
+  // The schedule shows only the selected day; on today the Tasks list holds every unfinished task.
+  const dayOccs = isToday ? todays : week.filter((occ) => occ.date === selected)
+  // Lists follow "My order"; Next up, Overdue and the schedule stay in time order.
+  const selectedDay = byOrder(isToday ? everything : dayOccs)
   const selectedLabel = isToday ? 'Tasks' : friendlyDate(selected, today)
   const doneToday = todays.filter((occ) => occ.done).length
   const focused = byOrder(todays.filter((occ) => occ.task.focusDate === today))
   const nowTime = format(new Date(), 'HH:mm')
   const open = todays.filter((occ) => !occ.done)
   const next = open.find((occ) => occ.task.dueTime !== null && occ.task.dueTime >= nowTime) ?? open[0]
-
-  const upcomingByDate = new Map<string, Occurrence[]>()
-  for (const occ of upcoming) {
-    if (occ.date) upcomingByDate.set(occ.date, [...(upcomingByDate.get(occ.date) ?? []), occ])
-  }
-  for (const [date, occs] of upcomingByDate) upcomingByDate.set(date, byOrder(occs))
 
   const shiftWeek = (weeks: number) => {
     const offset = weeks === 0 ? 0 : weekOffset + weeks
@@ -273,37 +269,20 @@ export function TodayView() {
                 <div className="rounded-lg border border-line bg-raised shadow-card">
                   <EmptyState
                     icon={Sparkles}
-                    title={isToday ? 'Nothing due today' : `Nothing planned for ${selectedLabel}`}
+                    title={isToday ? 'No tasks yet' : `Nothing planned for ${selectedLabel}`}
                     description="Enjoy the space, or add something above."
                   />
                 </div>
               ) : (
-                <SortableTaskList occs={selectedDay} render={isToday ? pinnableRow : undefined} />
+                <SortableTaskList occs={selectedDay} render={isToday ? dashboardRow : undefined} />
               )}
             </div>
           </Section>
-
-          {personal.showUpcoming && isToday && (
-            <Section title="Next 7 days" count={upcoming.length}>
-              {upcoming.length === 0 ? (
-                <p className="text-base text-fg-muted">Nothing scheduled for the coming week.</p>
-              ) : (
-                <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
-                  {[...upcomingByDate.entries()].map(([date, occs]) => (
-                    <div key={date}>
-                      <h3 className="mb-2 text-base font-medium text-fg-muted">{friendlyDate(date, today)}</h3>
-                      <SortableTaskList occs={occs} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-          )}
         </div>
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-8">
           {overdue.length > 0 && <OverdueDropdown overdue={overdue} />}
-          {personal.showSchedule && <Schedule date={selected} occs={selectedDay} />}
+          {personal.showSchedule && <Schedule date={selected} occs={dayOccs} />}
         </div>
       </div>
     </div>

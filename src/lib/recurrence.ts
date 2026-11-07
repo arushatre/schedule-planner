@@ -103,3 +103,22 @@ export function listOccurrences(tasks: Task[], today: string): Occurrence[] {
   )
   return [...oneOffs, ...recurring, ...undatedOccurrences(tasks)]
 }
+
+/**
+ * The Dashboard's Tasks list: everything due today (finished ones too), then every unfinished
+ * task due later or with no date. A repeating task shows once, at its next date. Overdue items
+ * are left out because the Dashboard lists them separately.
+ */
+export function dashboardOccurrences(tasks: Task[], today: string): Occurrence[] {
+  const todays = expandOccurrences(tasks, today, today)
+  const seen = new Set(todays.map((occ) => occ.task.id))
+  const later = listOccurrences(tasks, today)
+    .filter((occ) => !occ.done && (occ.date === null || occ.date > today))
+    .sort(compareByDue)
+    .filter((occ) => {
+      if (seen.has(occ.task.id)) return false
+      seen.add(occ.task.id)
+      return true
+    })
+  return [...todays, ...later]
+}
