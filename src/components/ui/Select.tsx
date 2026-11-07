@@ -6,6 +6,7 @@ import type { KeyboardEvent } from 'react'
 import { cx } from '@/lib/cx'
 import { PALETTE } from '@/lib/palette'
 import type { PaletteKey } from '@/lib/palette'
+import { matchesQuery } from '@/lib/search'
 import { Icon } from './Icon'
 
 export interface SelectOption<T extends string = string> {
@@ -35,10 +36,13 @@ export function Select<T extends string = string>({
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
+  // Typed while the list is open; narrows it to options with a word starting with it ("11" → 11:00 AM…).
+  const [query, setQuery] = useState('')
   const rootRef = useRef<HTMLDivElement>(null)
   const listId = useId()
 
   const selected = options.find((option) => option.value === value)
+  const shown = query ? options.filter((option) => matchesQuery(option.label, query)) : options
 
   useEffect(() => {
     if (!open) return
@@ -52,16 +56,34 @@ export function Select<T extends string = string>({
   const openList = () => {
     const index = options.findIndex((option) => option.value === value)
     setActive(index >= 0 ? index : 0)
+    setQuery('')
     setOpen(true)
   }
 
   const commit = (index: number) => {
-    const option = options[index]
+    const option = shown[index]
     if (option) onChange(option.value)
     setOpen(false)
   }
 
+  const type = (next: string) => {
+    setQuery(next)
+    setActive(0)
+    setOpen(true)
+  }
+
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const typing = event.key.length === 1 && event.key !== ' ' && !event.metaKey && !event.ctrlKey && !event.altKey
+    if (typing) {
+      event.preventDefault()
+      type((open ? query : '') + event.key)
+      return
+    }
+    if (open && event.key === 'Backspace') {
+      event.preventDefault()
+      type(query.slice(0, -1))
+      return
+    }
     if (!open) {
       if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) {
         event.preventDefault()
@@ -72,7 +94,7 @@ export function Select<T extends string = string>({
     switch (event.key) {
       case 'ArrowDown':
         event.preventDefault()
-        setActive((index) => Math.min(index + 1, options.length - 1))
+        setActive((index) => Math.min(index + 1, shown.length - 1))
         break
       case 'ArrowUp':
         event.preventDefault()
@@ -84,7 +106,7 @@ export function Select<T extends string = string>({
         break
       case 'End':
         event.preventDefault()
-        setActive(options.length - 1)
+        setActive(shown.length - 1)
         break
       case 'Enter':
       case ' ':
@@ -94,7 +116,8 @@ export function Select<T extends string = string>({
       case 'Escape':
         event.preventDefault()
         event.stopPropagation()
-        setOpen(false)
+        if (query) type('')
+        else setOpen(false)
         break
       case 'Tab':
         setOpen(false)
@@ -141,7 +164,12 @@ export function Select<T extends string = string>({
             transition={{ duration: 0.15, ease: 'easeOut' }}
             className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border border-line-strong bg-raised p-1 shadow-pop"
           >
-            {options.map((option, index) => (
+            {query && (
+              <li role="presentation" className="px-2 pb-1 pt-0.5 text-xs text-fg-subtle">
+                {shown.length > 0 ? `Matching “${query}”` : `Nothing matches “${query}”`}
+              </li>
+            )}
+            {shown.map((option, index) => (
               <li
                 key={option.value}
                 id={`${listId}-${index}`}

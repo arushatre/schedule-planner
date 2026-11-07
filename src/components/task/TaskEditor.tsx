@@ -34,7 +34,8 @@ const timeOptions = (emptyLabel: string): SelectOption[] => [
   ...TIME_SLOTS.map((slot) => ({ value: slot, label: formatTime(slot) })),
 ]
 
-const DUE_TIME_OPTIONS = timeOptions('No time')
+// 11:59 PM sits right after "No time": it's the usual end-of-day deadline.
+const DUE_TIME_OPTIONS: SelectOption[] = [{ value: '', label: 'No time' }, { value: '23:59', label: formatTime('23:59') }, ...TIME_SLOTS.map((slot) => ({ value: slot, label: formatTime(slot) }))]
 const REMINDER_OPTIONS = timeOptions('No reminder')
 
 interface FormState {
