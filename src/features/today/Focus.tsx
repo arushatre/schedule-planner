@@ -99,7 +99,7 @@ export function Focus({ occs }: { occs: Occurrence[] }) {
         {occs.length > 0 && <span className="tabular font-medium text-fg-subtle">{occs.length}</span>}
       </h2>
       {occs.length === 0 ? (
-        <p className="text-base text-fg-muted">Pin any of today’s tasks to keep it here.</p>
+        <p className="text-base text-fg-muted">Pin any task to keep it here for today.</p>
       ) : (
         <ol className="grid gap-1 rounded-lg border border-line bg-raised p-1.5 shadow-card">
           {occs.map((occ, index) => (

@@ -27,11 +27,8 @@ const plural = (count: number, word: string) => `${count} ${word}${count === 1 ?
 const byDue = (list: Occurrence[]) => [...list].sort(compareByDue)
 const byOrder = (list: Occurrence[]) => [...list].sort(compareByOrder)
 const OVERDUE_OPEN_KEY = 'daybook:overdue-open'
-// Today's rows hide their date and can be pinned; later tasks in the same list show their date.
-const dashboardRow = (occ: Occurrence, handle: ReactNode) => {
-  const isToday = occ.date === todayStr()
-  return <TaskRow occ={occ} hideDate={isToday} dragHandle={handle} pinnable={isToday} />
-}
+// Today's rows hide their date; later tasks in the same list show theirs.
+const dashboardRow = (occ: Occurrence, handle: ReactNode) => <TaskRow occ={occ} hideDate={occ.date === todayStr()} dragHandle={handle} />
 
 function Section({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
   return (
@@ -213,14 +210,21 @@ export function TodayView() {
   const isToday = selected === today
   // The schedule shows only the selected day; on today the Tasks list holds every unfinished task.
   const dayOccs = isToday ? todays : week.filter((occ) => occ.date === selected)
-  // Lists follow "My order"; Next up, Overdue and the schedule stay in time order.
+  // Lists follow "My order"; Overdue and the schedule stay in time order.
   const selectedDay = byOrder(isToday ? everything : dayOccs)
   const selectedLabel = isToday ? 'Tasks' : friendlyDate(selected, today)
   const doneToday = todays.filter((occ) => occ.done).length
-  const focused = byOrder(todays.filter((occ) => occ.task.focusDate === today))
-  const nowTime = format(new Date(), 'HH:mm')
-  const open = todays.filter((occ) => !occ.done)
-  const next = open.find((occ) => occ.task.dueTime !== null && occ.task.dueTime >= nowTime) ?? open[0]
+  // Any task can be pinned; a repeating task is listed once.
+  const pinnedIds = new Set<string>()
+  const focused = byOrder(
+    [...everything, ...overdue].filter((occ) => {
+      if (occ.task.focusDate !== today || pinnedIds.has(occ.task.id)) return false
+      pinnedIds.add(occ.task.id)
+      return true
+    }),
+  )
+  // Next up is the first unfinished task in the Tasks list, top to bottom.
+  const next = byOrder(everything).find((occ) => !occ.done)
 
   const shiftWeek = (weeks: number) => {
     const offset = weeks === 0 ? 0 : weekOffset + weeks

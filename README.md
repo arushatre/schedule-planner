@@ -86,9 +86,9 @@ eduroam often block device-to-device traffic; a phone hotspot works around that.
   Next up, **Pinned Tasks**, **Tasks**, a collapsible Overdue list, and an hour-by-hour schedule
   - **Tasks**: one list of everything due today (finished ones stay, checked off) plus every unfinished task due later
     or with no date, in My order. A repeating task shows once, at its next date; overdue tasks stay in Overdue.
-    (The phone app still shows today's tasks and Next 7 days.)
-  - **Pinned Tasks**: pin any of today's tasks (the pin appears when you hover a row; on the phone it's ☆ on each
-    row, under "Focus for today") to list it here, numbered in your order, with a short note. Edit the note with the pencil or a
+    (The phone app still shows today's tasks and Next 7 days.) **Next up** is the first unfinished task in this list.
+  - **Pinned Tasks**: pin any task with the pin on its row (on the phone it's ☆ on today's rows, under "Focus for
+    today") to list it here, numbered in your order, with a short note. Edit the note with the pencil or a
     double-click (phone: tap it); Enter saves, Esc cancels. ✕ unpins; the note stays with the task. Pins last for
     that day only.
   - **Schedule**: timed tasks and classes on a 24-hour timeline centered on now. Items that overlap sit side by side,

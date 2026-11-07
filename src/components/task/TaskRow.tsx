@@ -29,11 +29,9 @@ interface TaskRowProps {
   hideDate?: boolean
   /** Drag handle from SortableTaskList, shown at the right edge. */
   dragHandle?: ReactNode
-  /** Show the star that pins the task to today's Focus (Dashboard, today only). */
-  pinnable?: boolean
 }
 
-export function TaskRow({ occ, selectable = false, selected = false, onSelect, hideDate = false, dragHandle, pinnable = false }: TaskRowProps) {
+export function TaskRow({ occ, selectable = false, selected = false, onSelect, hideDate = false, dragHandle }: TaskRowProps) {
   const categories = useTasksStore((state) => state.categories)
   const openEditor = useUiStore((state) => state.openEditor)
   const { setDone, guard } = useTaskActions()
@@ -117,27 +115,26 @@ export function TaskRow({ occ, selectable = false, selected = false, onSelect, h
           {progress.total > 0 && <ProgressBar done={progress.done} total={progress.total} />}
         </span>
       </button>
-      {pinnable && (
-        <button
-          type="button"
-          onClick={() =>
-            void guard(() => {
-              const { tasks, saveTask } = useTasksStore.getState()
-              const latest = tasks.find((existing) => existing.id === task.id) ?? task
-              return saveTask({ ...latest, focusDate: pinned ? null : today })
-            })
-          }
-          aria-pressed={pinned}
-          aria-label={pinned ? `Unpin ${task.title}` : `Pin ${task.title}`}
-          title={pinned ? 'Unpin' : 'Pin'}
-          className={cx(
-            '-my-1 self-center rounded-md p-1 transition-colors hover:bg-sunken hover:text-fg',
-            pinned ? 'text-highlight' : 'text-fg-subtle opacity-0 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100',
-          )}
-        >
-          <Icon icon={Pin} size={16} className={pinned ? 'fill-current' : undefined} />
-        </button>
-      )}
+      {/* Pins any task to the Dashboard's Pinned Tasks for today; always visible. */}
+      <button
+        type="button"
+        onClick={() =>
+          void guard(() => {
+            const { tasks, saveTask } = useTasksStore.getState()
+            const latest = tasks.find((existing) => existing.id === task.id) ?? task
+            return saveTask({ ...latest, focusDate: pinned ? null : today })
+          })
+        }
+        aria-pressed={pinned}
+        aria-label={pinned ? `Unpin ${task.title}` : `Pin ${task.title}`}
+        title={pinned ? 'Unpin' : 'Pin'}
+        className={cx(
+          '-my-1 self-center rounded-md p-1 transition-colors hover:bg-sunken hover:text-fg',
+          pinned ? 'text-highlight' : 'text-fg-subtle',
+        )}
+      >
+        <Icon icon={Pin} size={16} className={pinned ? 'fill-current' : undefined} />
+      </button>
       <PriorityMark priority={task.priority} />
       {dragHandle}
     </div>
